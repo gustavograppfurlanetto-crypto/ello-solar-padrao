@@ -387,7 +387,13 @@
           Editar
         </button>
       </div>
-      <button class="btn btn-ghost" onclick="closeModal('modal-detail')">Fechar</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" style="background:#DC2626;color:white;border-color:#DC2626;gap:6px;" onclick="deletePedido()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Excluir
+        </button>
+        <button class="btn btn-ghost" onclick="closeModal('modal-detail')">Fechar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -629,6 +635,17 @@ function openEditModal(){
   document.getElementById('modal-new-title').textContent='Editar pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar alterações';
   document.getElementById('modal-new').classList.add('open');
+}
+
+async function deletePedido(){
+  if(!currentPedido)return;
+  if(!confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.'))return;
+  try{
+    await api('DELETE','/rest/v1/pedidos?id=eq.'+currentPedido.id);
+    showToast('Pedido excluído!');
+    closeModal('modal-detail');
+    await load();
+  }catch(e){showToast('Erro ao excluir',true);}
 }
 
 let ucExtrasCount = 0;
