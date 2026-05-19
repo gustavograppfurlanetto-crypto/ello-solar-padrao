@@ -256,6 +256,7 @@
         <div class="form-grid">
           <div class="form-group full"><label class="required">Nome do titular</label><input type="text" id="f-nome" placeholder="Nome completo"></div>
           <div class="form-group"><label class="required">CPF</label><input type="text" id="f-cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)"></div>
+          <div class="form-group"><label>RG</label><input type="text" id="f-rg" placeholder="00.000.000-0"></div>
           <div class="form-group"><label class="required">Data de nascimento</label><input type="date" id="f-nascimento"></div>
           <div class="form-group"><label>Nome da mãe</label><input type="text" id="f-mae" placeholder="Nome da mãe"></div>
           <div class="form-group"><label>Nome do pai</label><input type="text" id="f-pai" placeholder="Nome do pai"></div>
@@ -532,6 +533,7 @@ function openDetail(id){
       <div class="detail-section-title">Dados do titular</div>
       <div class="detail-grid">
         <div class="detail-item"><div class="detail-label">CPF</div><div class="detail-value">${p.cpf}</div></div>
+        ${p.rg?`<div class="detail-item"><div class="detail-label">RG</div><div class="detail-value">${p.rg}</div></div>`:''}
         <div class="detail-item"><div class="detail-label">Data de nascimento</div><div class="detail-value">${dn}</div></div>
         <div class="detail-item"><div class="detail-label">Telefone</div><div class="detail-value">${p.telefone}</div></div>
         <div class="detail-item"><div class="detail-label">E-mail</div><div class="detail-value">${p.email||'—'}</div></div>
@@ -672,6 +674,7 @@ function collectUcsExtras(){
 async function savePedido(){
   const nome=document.getElementById('f-nome').value.trim();
   const cpf=document.getElementById('f-cpf').value.trim();
+  const rg=document.getElementById('f-rg').value.trim();
   const nasc=document.getElementById('f-nascimento').value;
   const uc=document.getElementById('f-uc').value.trim();
   const tel=document.getElementById('f-telefone').value.trim();
@@ -698,7 +701,7 @@ async function savePedido(){
     }
   }
   const body={
-    nome_titular:nome,cpf,data_nascimento:nasc,unidade_consumidora:uc,telefone:tel,
+    nome_titular:nome,cpf,rg:rg||null,data_nascimento:nasc,unidade_consumidora:uc,telefone:tel,
     email:document.getElementById('f-email').value.trim()||null,
     nome_mae:document.getElementById('f-mae').value.trim()||null,
     nome_pai:document.getElementById('f-pai').value.trim()||null,
@@ -715,7 +718,7 @@ async function savePedido(){
 }
 
 function clearForm(){
-  ['f-nome','f-cpf','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-nome','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-tipo').value='';
   document.getElementById('f-conexao').value='';
   document.getElementById('conexao-group').style.display='none';
@@ -812,7 +815,7 @@ async function gerarOS(tipo){
   <div style="margin-bottom:14px">${secTitle('Dados do titular')}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px 16px">
       <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Nome do titular</span><span style="font-size:15px;font-weight:600">${p.nome_titular}</span></div>
-      ${row('CPF',p.cpf,true)}${row('Data de nascimento',dn)}
+      ${row('CPF',p.cpf,true)}${p.rg?row('RG',p.rg,true):''}${row('Data de nascimento',dn)}
       ${row('Telefone',p.telefone)}${row('E-mail',p.email||'—')}
       ${row('Nome da mãe',p.nome_mae||'—')}${row('Nome do pai',p.nome_pai||'—')}
     </div>
