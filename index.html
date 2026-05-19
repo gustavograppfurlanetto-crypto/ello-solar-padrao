@@ -350,6 +350,13 @@
           </div>
 
           <div class="form-group full"><label>Observações</label><textarea id="f-obs" placeholder="Informações adicionais sobre o pedido..."></textarea></div>
+          <div class="form-group full">
+            <label>Foto do padrão atual</label>
+            <input type="file" id="f-foto" accept=".jpg,.jpeg,.png,image/*" onchange="previewFoto(this)" style="font-size:13px;padding:6px 0;">
+            <div id="f-foto-preview" style="display:none;margin-top:8px;text-align:center;">
+              <img id="f-foto-img" style="max-width:100%;max-height:200px;border-radius:6px;border:1px solid var(--border);object-fit:contain;">
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -562,6 +569,7 @@ function openDetail(id){
       </div>
     </div>
     ${desligHtml}
+    ${p.foto_padrao?`<div class="detail-section"><div class="detail-section-title">Foto do padrão atual</div><div style="text-align:center"><img src="${p.foto_padrao}" style="max-width:100%;border-radius:6px;border:1px solid var(--border)"></div></div>`:''}
     <div style="margin-top:4px"><div class="detail-label" style="margin-bottom:8px">Mover status para:</div><div class="status-actions">${so}</div></div>
   `;
   document.getElementById('modal-detail').classList.add('open');
@@ -632,6 +640,10 @@ function openEditModal(){
       });
     }
   }
+  const fImg=document.getElementById('f-foto-img');
+  const fPrev=document.getElementById('f-foto-preview');
+  if(p.foto_padrao){fImg.src=p.foto_padrao;fPrev.style.display='block';}
+  else{fImg.src='';fPrev.style.display='none';}
   document.getElementById('modal-new-title').textContent='Editar pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar alterações';
   document.getElementById('modal-new').classList.add('open');
@@ -806,18 +818,46 @@ async function savePedido(){
     ucs_desligamento_extras:tipo==='alteracao_conexao'&&temD?collectUcsExtras():null,
     observacoes:document.getElementById('f-obs').value.trim()||null
   };
+  const fotoFile=document.getElementById('f-foto').files[0];
   try{
     if(editingId){
+      if(fotoFile) body.foto_padrao=await uploadFoto(fotoFile,editingId);
       await api('PATCH','/rest/v1/pedidos?id=eq.'+editingId,body);
       showToast('Pedido atualizado!');
     } else {
       body.status='aberto';
-      await api('POST','/rest/v1/pedidos',body);
+      const [created]=await api('POST','/rest/v1/pedidos',body);
+      if(fotoFile&&created?.id){
+        const url=await uploadFoto(fotoFile,created.id);
+        await api('PATCH','/rest/v1/pedidos?id=eq.'+created.id,{foto_padrao:url});
+      }
       showToast('Pedido cadastrado!');
     }
     closeModal('modal-new');clearForm();await load();
   }
   catch(e){showToast('Erro ao salvar',true);}
+}
+
+async function uploadFoto(file,pedidoId){
+  const ext=file.name.split('.').pop().toLowerCase();
+  const path=`${pedidoId}.${ext}`;
+  const res=await fetch(`${SURL}/storage/v1/object/fotos-padrao/${path}`,{
+    method:'POST',
+    headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':file.type,'x-upsert':'true'},
+    body:file
+  });
+  if(!res.ok)throw new Error('Erro no upload da foto');
+  return `${SURL}/storage/v1/object/public/fotos-padrao/${path}`;
+}
+
+function previewFoto(input){
+  const preview=document.getElementById('f-foto-preview');
+  const img=document.getElementById('f-foto-img');
+  if(input.files&&input.files[0]){
+    const reader=new FileReader();
+    reader.onload=e=>{img.src=e.target.result;preview.style.display='block';};
+    reader.readAsDataURL(input.files[0]);
+  }else{preview.style.display='none';img.src='';}
 }
 
 function clearForm(){
@@ -836,6 +876,9 @@ function clearForm(){
   document.getElementById('uc-principal-label').style.display='none';
   document.getElementById('btn-add-uc-wrap').style.display='none';
   resetUcsExtras();
+  document.getElementById('f-foto').value='';
+  document.getElementById('f-foto-preview').style.display='none';
+  document.getElementById('f-foto-img').src='';
 }
 
 function filterByStatus(s){activeStatus=s;document.getElementById('filter-status').value=s;document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));document.getElementById('topbar-title').textContent=SL[s]||'Todos os pedidos';applyFilters();}
@@ -864,6 +907,7 @@ async function gerarOS(tipo, fotoBase64=null){
   const dn=p.data_nascimento?new Date(p.data_nascimento+'T00:00:00').toLocaleDateString('pt-BR'):'—';
   const tipoLabel=TL[p.tipo_solicitacao]+(p.tipo_conexao?' — '+CL[p.tipo_conexao]:'');
   const isSol=tipo==='solicitacao';
+  const fotoSrc=fotoBase64||(isSol?null:p.foto_padrao||null);
   const corTopo=isSol?'#004358':'#FD7400';
   const labelOS=isSol?'Ordem de Serviço — Solicitação':'Ordem de Serviço — Execução';
   const descricao=(()=>{
@@ -954,7 +998,7 @@ async function gerarOS(tipo, fotoBase64=null){
     </div>
     ${p.observacoes?`<div style="background:#F0EFE9;border-radius:6px;padding:12px 16px;margin-top:8px"><div style="font-size:9.5px;color:#9E9D98;text-transform:uppercase;margin-bottom:3px">Observações</div><div style="font-size:13px">${p.observacoes}</div></div>`:''}
   </div>
-  ${fotoBase64?`<div style="margin-bottom:14px">${secTitle('Foto do padrão atual')}<div style="text-align:center"><img src="${fotoBase64}" style="max-width:100%;border-radius:6px;display:block;margin:0 auto"></div></div>`:''}
+  ${fotoSrc?`<div style="margin-bottom:14px">${secTitle('Foto do padrão atual')}<div style="text-align:center"><img src="${fotoSrc}" style="max-width:100%;border-radius:6px;display:block;margin:0 auto"></div></div>`:''}
   `}
 
   <div style="margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:28px">
