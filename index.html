@@ -1018,11 +1018,22 @@ async function gerarOS(tipo, fotoBase64=null){
     <button onclick="baixarPDF()" style="padding:8px 16px;border-radius:6px;border:none;background:#FD7400;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:sans-serif">Baixar PDF</button>
   </div>
   <script>
-  function baixarPDF(){
+  async function baixarPDF(){
     var clone=document.body.cloneNode(true);
     var np=clone.querySelector('.no-print');
     if(np)np.remove();
-    html2pdf().set({filename:'${numOS}.pdf',margin:10,html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(clone).save();
+    var imgs=Array.from(clone.querySelectorAll('img'));
+    await Promise.all(imgs.map(function(img){
+      return new Promise(function(resolve){
+        if(!img.src||img.src.startsWith('data:'))return resolve();
+        fetch(img.src).then(function(r){return r.blob();}).then(function(blob){
+          var reader=new FileReader();
+          reader.onload=function(e){img.src=e.target.result;resolve();};
+          reader.readAsDataURL(blob);
+        }).catch(resolve);
+      });
+    }));
+    html2pdf().set({filename:'${numOS}.pdf',margin:10,html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(clone).save();
   }
   <\/script>
   </body></html>`;
