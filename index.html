@@ -955,7 +955,8 @@ async function gerarOS(tipo, fotoBase64=null){
 
   const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${labelOS} ${numOS}</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap" rel="stylesheet">
-  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Outfit',sans-serif;font-size:12px;color:#1A1917;background:#fff;padding:28px 32px}@media print{body{padding:10px}@page{margin:10mm}}</style>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Outfit',sans-serif;font-size:12px;color:#1A1917;background:#fff;padding:28px 32px}@media print{body{padding:10px}@page{margin:10mm}.no-print{display:none}}</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
   </head><body>
   <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:3px solid ${corTopo};margin-bottom:18px">
     ${logoHtml}
@@ -994,7 +995,7 @@ async function gerarOS(tipo, fotoBase64=null){
       <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Nome</span><span style="font-size:16px;font-weight:600">${p.nome_titular}</span></div>
       ${row('Telefone',p.telefone)}${row('Unidade consumidora',p.unidade_consumidora,true)}
       <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Endereço</span><span style="font-size:13px">${p.endereco}${p.ponto_referencia?' — '+p.ponto_referencia:''}</span></div>
-      ${p.link_localizacao?`<div style="grid-column:1/-1;display:flex;align-items:center;gap:5px;margin-top:2px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#004358" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><a href="${p.link_localizacao}" target="_blank" style="font-size:12px;color:#004358;text-decoration:underline">Localização</a></div>`:''}
+      ${p.link_localizacao?`<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Localização</span><a href="${p.link_localizacao}" target="_blank" style="font-size:12px;color:#004358;word-break:break-all">${p.link_localizacao}</a></div>`:''}
     </div>
   </div>
   <div style="margin-bottom:14px">${secTitle('Serviço a executar')}
@@ -1011,7 +1012,18 @@ async function gerarOS(tipo, fotoBase64=null){
     <div style="border-top:1.5px solid #D0CEC5;padding-top:8px;text-align:center;font-size:10px;color:#6B6A65">Responsável técnico / Assinatura</div>
     <div style="border-top:1.5px solid #D0CEC5;padding-top:8px;text-align:center;font-size:10px;color:#6B6A65">Cliente / Assinatura e carimbo</div>
   </div>
-  <script>window.onload=function(){window.print();}<\/script>
+  <div class="no-print" style="position:fixed;top:16px;right:16px;display:flex;gap:8px;z-index:999">
+    <button onclick="window.print()" style="padding:8px 16px;border-radius:6px;border:1px solid #C8DDE5;background:#fff;color:#004358;font-size:13px;font-weight:500;cursor:pointer;font-family:sans-serif">Imprimir</button>
+    <button onclick="baixarPDF()" style="padding:8px 16px;border-radius:6px;border:none;background:#FD7400;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:sans-serif">Baixar PDF</button>
+  </div>
+  <script>
+  function baixarPDF(){
+    var clone=document.body.cloneNode(true);
+    var np=clone.querySelector('.no-print');
+    if(np)np.remove();
+    html2pdf().set({filename:'${numOS}.pdf',margin:10,html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(clone).save();
+  }
+  <\/script>
   </body></html>`;
 
   const win=window.open('','_blank','width=860,height=1050');
