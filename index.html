@@ -272,6 +272,7 @@
           <div class="form-group"><label class="required">Unidade consumidora</label><input type="text" id="f-uc" placeholder="Número da UC"></div>
           <div class="form-group full"><label class="required">Endereço</label><input type="text" id="f-endereco" placeholder="Rua, número, bairro, cidade"></div>
           <div class="form-group full"><label>Ponto de referência</label><input type="text" id="f-referencia" placeholder="Ex: próximo ao mercado..."></div>
+          <div class="form-group full"><label>Link da localização</label><input type="text" id="f-localizacao" placeholder="Cole o link do Google Maps..."></div>
         </div>
       </div>
 
@@ -565,6 +566,7 @@ function openDetail(id){
         <div class="detail-item"><div class="detail-label">Nome do pai</div><div class="detail-value">${p.nome_pai||'—'}</div></div>
         <div class="detail-full"><div class="detail-label">Unidade consumidora</div><div class="detail-value">${p.unidade_consumidora}</div></div>
         <div class="detail-full"><div class="detail-label">Endereço</div><div class="detail-value">${p.endereco}${p.ponto_referencia?' — '+p.ponto_referencia:''}</div></div>
+        ${p.link_localizacao?`<div class="detail-full"><div class="detail-label">Link da localização</div><div class="detail-value"><a href="${p.link_localizacao}" target="_blank" style="color:var(--accent2);word-break:break-all">${p.link_localizacao}</a></div></div>`:''}
         ${p.observacoes?`<div class="detail-full"><div class="detail-label">Observações</div><div class="detail-value">${p.observacoes}</div></div>`:''}
       </div>
     </div>
@@ -597,6 +599,7 @@ function openEditModal(){
   document.getElementById('f-uc').value=p.unidade_consumidora||'';
   document.getElementById('f-endereco').value=p.endereco||'';
   document.getElementById('f-referencia').value=p.ponto_referencia||'';
+  document.getElementById('f-localizacao').value=p.link_localizacao||'';
   document.getElementById('f-obs').value=p.observacoes||'';
   document.getElementById('f-tipo').value=p.tipo_solicitacao||'';
   onTipoChange();
@@ -811,6 +814,7 @@ async function savePedido(){
     nome_mae:document.getElementById('f-mae').value.trim()||null,
     nome_pai:document.getElementById('f-pai').value.trim()||null,
     endereco:end,ponto_referencia:document.getElementById('f-referencia').value.trim()||null,
+    link_localizacao:document.getElementById('f-localizacao').value.trim()||null,
     tipo_solicitacao:tipo,tipo_conexao:tipo==='alteracao_conexao'?conexao:null,
     uc_desligamento:ucD,titular_desligamento:titD,cpf_desligamento:cpfD,
     nascimento_desligamento:nascD,nome_mae_desligamento:maeD,nome_pai_desligamento:paiD,
@@ -864,7 +868,7 @@ function clearForm(){
   editingId=null;
   document.getElementById('modal-new-title').textContent='Novo pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar pedido';
-  ['f-nome','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-nome','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-localizacao','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-tipo').value='';
   document.getElementById('f-conexao').value='';
   document.getElementById('conexao-group').style.display='none';
@@ -974,6 +978,7 @@ async function gerarOS(tipo, fotoBase64=null){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px 16px">
       ${row('Unidade consumidora',p.unidade_consumidora,true)}${row('Status',SL[p.status])}
       <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Endereço</span><span>${p.endereco}${p.ponto_referencia?' — '+p.ponto_referencia:''}</span></div>
+      ${p.link_localizacao?`<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Link da localização</span><span><a href="${p.link_localizacao}" target="_blank" style="color:#004358;word-break:break-all">${p.link_localizacao}</a></span></div>`:''}
     </div>
   </div>
   <div style="margin-bottom:14px">${secTitle('Tipo de solicitação')}
