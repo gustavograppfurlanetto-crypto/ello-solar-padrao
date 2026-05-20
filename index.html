@@ -826,7 +826,8 @@ async function savePedido(){
   try{
     if(editingId){
       if(fotoFile) body.foto_padrao=await uploadFoto(fotoFile,editingId);
-      await api('PATCH','/rest/v1/pedidos?id=eq.'+editingId,body);
+      const [updated]=await api('PATCH','/rest/v1/pedidos?id=eq.'+editingId,body);
+      currentPedido={...currentPedido,...(updated||body)};
       showToast('Pedido atualizado!');
     } else {
       body.status='aberto';
