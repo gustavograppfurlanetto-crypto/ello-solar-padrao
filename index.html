@@ -637,7 +637,6 @@ function openDetail(id){
     </div>
     ${desligHtml}
     ${p.foto_padrao?`<div class="detail-section"><div class="detail-section-title">Foto do padrão atual</div><div style="text-align:center"><img src="${p.foto_padrao}" style="max-width:100%;border-radius:6px;border:1px solid var(--border)"></div></div>`:''}
-    ${(p.executor_id||p.valor_acordado!=null)?`<div class="detail-section"><div class="detail-section-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Atribuição</div><div class="detail-grid">${p.executor_id?`<div class="detail-item"><div class="detail-label">Executor</div><div class="detail-value">${executores.find(e=>e.id===p.executor_id)?.nome||'—'}</div></div>`:''} ${p.valor_acordado!=null?`<div class="detail-item"><div class="detail-label">Valor acordado</div><div class="detail-value">${Number(p.valor_acordado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div></div>`:''}</div></div>`:''}
     <div style="margin-top:4px"><div class="detail-label" style="margin-bottom:8px">Mover status para:</div><div class="status-actions">${so}</div></div>
   `;
   document.getElementById('modal-detail').classList.add('open');
