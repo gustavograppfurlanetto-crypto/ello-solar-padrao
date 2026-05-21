@@ -179,6 +179,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         Concluídos
       </button>
+      <div class="nav-label" style="margin-top:16px">Configurações</div>
+      <button class="nav-item" id="nav-executores" onclick="showExecutoresView(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Executores
+      </button>
     </nav>
     <div class="sidebar-footer">
       <div class="stat-mini">
@@ -191,15 +196,20 @@
   <div class="main">
     <header class="topbar">
       <span class="topbar-title" id="topbar-title">Todos os pedidos</span>
-      <div>
-        <button class="btn btn-primary" onclick="openNewModal()">
+      <div style="display:flex;gap:8px;">
+        <button id="btn-novo-pedido" class="btn btn-primary" onclick="openNewModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo pedido
+        </button>
+        <button id="btn-novo-executor" class="btn btn-primary" onclick="openNewExecutorModal()" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo executor
         </button>
       </div>
     </header>
 
     <div class="content">
+      <div id="view-pedidos">
       <div class="stats-row">
         <div class="stat-card"><div class="stat-card-label"><span class="stat-dot" style="background:#9CA3AF"></span>Abertos</div><div class="stat-card-value" id="stat-aberto">—</div></div>
         <div class="stat-card"><div class="stat-card-label"><span class="stat-dot" style="background:#F59E0B"></span>Aguardando</div><div class="stat-card-value" id="stat-aguardando">—</div></div>
@@ -238,6 +248,19 @@
         <div class="pagination" id="pagination" style="display:none;">
           <span id="pagination-info"></span>
           <div class="page-btns" id="page-btns"></div>
+        </div>
+      </div>
+      </div><!-- /view-pedidos -->
+
+      <div id="view-executores" style="display:none;">
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-header-left">
+              <span class="table-title">Executores</span>
+              <span class="count-badge" id="exec-count">0</span>
+            </div>
+          </div>
+          <div id="exec-table-container"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
         </div>
       </div>
     </div>
@@ -360,6 +383,22 @@
           </div>
         </div>
       </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Atribuição</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Executor</label>
+            <select id="f-executor">
+              <option value="">— Selecione um executor —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valor acordado</label>
+            <input type="text" id="f-valor" placeholder="R$ 0,00" oninput="maskMoeda(this)">
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="clearForm();closeModal('modal-new')">Cancelar</button>
@@ -401,6 +440,30 @@
   </div>
 </div>
 
+<!-- MODAL EXECUTOR -->
+<div class="modal-overlay" id="modal-executor">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-executor-title">Novo executor</span>
+      <button class="modal-close" onclick="closeModal('modal-executor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="required">Nome do executor</label>
+        <input type="text" id="f-exec-nome" placeholder="Nome completo">
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="f-exec-ativo" checked>
+        <label for="f-exec-ativo" style="cursor:pointer;font-size:13px;color:var(--text2);">Executor ativo</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-executor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveExecutor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <input type="file" id="foto-execucao-input" accept="image/*" style="display:none">
 
@@ -411,6 +474,7 @@ const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'applicatio
 
 let all=[],filtered=[],page=1,activeStatus='';
 let editingId=null;
+let executores=[],editingExecutorId=null;
 const PER=10;
 const TL={aumento_carga:'Aumento de carga',troca_padrao:'Troca de padrão',alteracao_conexao:'Alteração de conexão',desligamento:'Desligamento'};
 const CL={monofasico:'Monofásico',bifasico:'Bifásico',trifasico:'Trifásico'};
@@ -467,9 +531,11 @@ function renderTable(){
     const tb=`<span class="badge badge-tipo">${TL[p.tipo_solicitacao]||p.tipo_solicitacao}</span>`;
     const di=p.uc_desligamento?` <span class="badge badge-deslig" title="UC vinculada: ${p.uc_desligamento}"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg> Deslig.</span>`:'';
     const d=new Date(p.created_at).toLocaleDateString('pt-BR');
-    return `<tr onclick="openDetail('${p.id}')"><td class="td-name">${p.nome_titular}</td><td class="td-mono">${p.cpf}</td><td class="td-mono">${p.unidade_consumidora}</td><td>${tb}${di}</td><td>${sb}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
+    const execNome=executores.find(e=>e.id===p.executor_id)?.nome||'—';
+    const valFmt=p.valor_acordado!=null?Number(p.valor_acordado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
+    return `<tr onclick="openDetail('${p.id}')"><td class="td-name">${p.nome_titular}</td><td class="td-mono">${p.cpf}</td><td class="td-mono">${p.unidade_consumidora}</td><td>${tb}${di}</td><td>${sb}</td><td style="font-size:12px;color:var(--text2)">${execNome}</td><td class="td-mono" style="font-size:12px;color:var(--text2)">${valFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
   }).join('');
-  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Valor</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
   const pel=document.getElementById('pagination');
   pel.style.display='flex';
@@ -567,6 +633,7 @@ function openDetail(id){
     </div>
     ${desligHtml}
     ${p.foto_padrao?`<div class="detail-section"><div class="detail-section-title">Foto do padrão atual</div><div style="text-align:center"><img src="${p.foto_padrao}" style="max-width:100%;border-radius:6px;border:1px solid var(--border)"></div></div>`:''}
+    ${(p.executor_id||p.valor_acordado!=null)?`<div class="detail-section"><div class="detail-section-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Atribuição</div><div class="detail-grid">${p.executor_id?`<div class="detail-item"><div class="detail-label">Executor</div><div class="detail-value">${executores.find(e=>e.id===p.executor_id)?.nome||'—'}</div></div>`:''} ${p.valor_acordado!=null?`<div class="detail-item"><div class="detail-label">Valor acordado</div><div class="detail-value">${Number(p.valor_acordado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div></div>`:''}</div></div>`:''}
     <div style="margin-top:4px"><div class="detail-label" style="margin-bottom:8px">Mover status para:</div><div class="status-actions">${so}</div></div>
   `;
   document.getElementById('modal-detail').classList.add('open');
@@ -596,6 +663,8 @@ function openEditModal(){
   document.getElementById('f-referencia').value=p.ponto_referencia||'';
   document.getElementById('f-localizacao').value=p.link_localizacao||'';
   document.getElementById('f-obs').value=p.observacoes||'';
+  document.getElementById('f-executor').value=p.executor_id||'';
+  document.getElementById('f-valor').value=p.valor_acordado!=null?formatMoeda(p.valor_acordado):'';
   document.getElementById('f-tipo').value=p.tipo_solicitacao||'';
   onTipoChange();
   if(p.tipo_solicitacao==='alteracao_conexao'){
@@ -815,7 +884,9 @@ async function savePedido(){
     nascimento_desligamento:nascD,nome_mae_desligamento:maeD,nome_pai_desligamento:paiD,
     telefone_desligamento:telD,email_desligamento:emailD,endereco_desligamento:endD,referencia_desligamento:refD,
     ucs_desligamento_extras:tipo==='alteracao_conexao'&&temD?collectUcsExtras():null,
-    observacoes:document.getElementById('f-obs').value.trim()||null
+    observacoes:document.getElementById('f-obs').value.trim()||null,
+    executor_id:document.getElementById('f-executor').value||null,
+    valor_acordado:parseMoeda(document.getElementById('f-valor').value)
   };
   const fotoFile=document.getElementById('f-foto').files[0];
   try{
@@ -865,7 +936,8 @@ function clearForm(){
   editingId=null;
   document.getElementById('modal-new-title').textContent='Novo pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar pedido';
-  ['f-nome','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-localizacao','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-nome','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-localizacao','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig','f-valor'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-executor').value='';
   document.getElementById('f-tipo').value='';
   document.getElementById('f-conexao').value='';
   document.getElementById('conexao-group').style.display='none';
@@ -882,8 +954,8 @@ function clearForm(){
   document.getElementById('f-foto-img').src='';
 }
 
-function filterByStatus(s){activeStatus=s;document.getElementById('filter-status').value=s;document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));document.getElementById('topbar-title').textContent=SL[s]||'Todos os pedidos';applyFilters();}
-function showAll(){activeStatus='';document.getElementById('filter-status').value='';document.getElementById('topbar-title').textContent='Todos os pedidos';document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('active',i===0));applyFilters();}
+function filterByStatus(s){showPedidosView();activeStatus=s;document.getElementById('filter-status').value=s;document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));document.getElementById('topbar-title').textContent=SL[s]||'Todos os pedidos';applyFilters();}
+function showAll(){showPedidosView();activeStatus='';document.getElementById('filter-status').value='';document.getElementById('topbar-title').textContent='Todos os pedidos';document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('active',i===0));applyFilters();}
 function openNewModal(){document.getElementById('modal-new').classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function maskCPF(el){let v=el.value.replace(/\D/g,'').substring(0,11);v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
@@ -910,6 +982,7 @@ async function gerarOS(tipo, fotoBase64=null){
   const isSol=tipo==='solicitacao';
   const fotoSrc=fotoBase64||(isSol?null:p.foto_padrao||null);
   const corTopo=isSol?'#004358':'#FD7400';
+  const executorName=executores.find(e=>e.id===p.executor_id)?.nome||null;
   const labelOS=isSol?'Ordem de Serviço — Solicitação':'Ordem de Serviço — Execução';
   const descricao=(()=>{
     if(p.tipo_conexao)return`Alteração de conexão para ${CL[p.tipo_conexao]}${p.uc_desligamento?', com desligamento vinculado de UC':''}`;
@@ -990,6 +1063,7 @@ async function gerarOS(tipo, fotoBase64=null){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px 16px">
       <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Nome</span><span style="font-size:16px;font-weight:600">${p.nome_titular}</span></div>
       ${row('Telefone',p.telefone)}${row('Unidade consumidora',p.unidade_consumidora,true)}
+      ${executorName?row('Responsável',executorName):''}
       <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Endereço</span><span style="font-size:13px">${p.endereco}${p.ponto_referencia?' — '+p.ponto_referencia:''}</span></div>
       ${p.link_localizacao?`<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Localização</span><a href="${p.link_localizacao}" target="_blank" style="font-size:12px;color:#004358;word-break:break-all">${p.link_localizacao}</a></div>`:''}
     </div>
@@ -1054,8 +1128,125 @@ function gerarOSComFoto(){
 
 document.getElementById('modal-new').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-new');});
 document.getElementById('modal-detail').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-detail');});
+document.getElementById('modal-executor').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-executor');});
 
-load();
+function maskMoeda(el){
+  let v=el.value.replace(/\D/g,'');
+  if(!v){el.value='';return;}
+  v=(parseInt(v,10)/100).toFixed(2);
+  el.value='R$ '+v.replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+}
+function parseMoeda(str){
+  if(!str||!str.trim())return null;
+  const n=parseFloat(str.replace(/[R$\s.]/g,'').replace(',','.'));
+  return isNaN(n)?null:n;
+}
+function formatMoeda(v){
+  if(v==null)return'';
+  return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+
+async function loadExecutores(){
+  try{
+    executores=await api('GET','/rest/v1/executores?select=*&order=nome.asc');
+    populateExecutorSelect();
+  }catch(e){executores=[];}
+}
+
+function populateExecutorSelect(){
+  const sel=document.getElementById('f-executor');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Selecione um executor —</option>';
+  executores.filter(e=>e.ativo).forEach(e=>{
+    const opt=document.createElement('option');
+    opt.value=e.id;opt.textContent=e.nome;sel.appendChild(opt);
+  });
+  if(cur)sel.value=cur;
+}
+
+function showPedidosView(){
+  document.getElementById('view-pedidos').style.display='block';
+  document.getElementById('view-executores').style.display='none';
+  document.getElementById('btn-novo-pedido').style.display='';
+  document.getElementById('btn-novo-executor').style.display='none';
+}
+
+function showExecutoresView(btn){
+  document.getElementById('view-pedidos').style.display='none';
+  document.getElementById('view-executores').style.display='block';
+  document.getElementById('topbar-title').textContent='Executores';
+  document.getElementById('btn-novo-pedido').style.display='none';
+  document.getElementById('btn-novo-executor').style.display='';
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  btn.classList.add('active');
+  renderExecutoresView();
+}
+
+function renderExecutoresView(){
+  const container=document.getElementById('exec-table-container');
+  document.getElementById('exec-count').textContent=executores.length;
+  if(!executores.length){
+    container.innerHTML='<div class="empty-state"><p>Nenhum executor cadastrado</p></div>';return;
+  }
+  const rows=executores.map(e=>`
+    <tr>
+      <td class="td-name">${e.nome}</td>
+      <td><span class="badge" style="background:${e.ativo?'var(--teal-bg)':'var(--neutral-bg)'};color:${e.ativo?'var(--teal-text)':'var(--neutral)'}"><span class="badge-dot" style="background:${e.ativo?'#1F8A70':'#9CA3AF'}"></span>${e.ativo?'Ativo':'Inativo'}</span></td>
+      <td style="text-align:right"><div style="display:flex;gap:6px;justify-content:flex-end">
+        <button class="btn" style="font-size:12px;padding:4px 10px;" onclick="openEditExecutorModal('${e.id}')">Editar</button>
+        <button class="btn" style="font-size:12px;padding:4px 10px;background:${e.ativo?'var(--warning-bg)':'var(--teal-bg)'};color:${e.ativo?'var(--warning)':'var(--teal-text)'};border-color:${e.ativo?'#F6D860':'#7FD4C0'}" onclick="toggleExecutorAtivo('${e.id}',${!e.ativo})">${e.ativo?'Desativar':'Ativar'}</button>
+      </div></td>
+    </tr>`).join('');
+  container.innerHTML=`<table><thead><tr><th>Nome</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function openNewExecutorModal(){
+  editingExecutorId=null;
+  document.getElementById('modal-executor-title').textContent='Novo executor';
+  document.getElementById('f-exec-nome').value='';
+  document.getElementById('f-exec-ativo').checked=true;
+  document.getElementById('modal-executor').classList.add('open');
+}
+
+function openEditExecutorModal(id){
+  const e=executores.find(x=>x.id===id);
+  if(!e)return;
+  editingExecutorId=id;
+  document.getElementById('modal-executor-title').textContent='Editar executor';
+  document.getElementById('f-exec-nome').value=e.nome;
+  document.getElementById('f-exec-ativo').checked=e.ativo;
+  document.getElementById('modal-executor').classList.add('open');
+}
+
+async function saveExecutor(){
+  const nome=document.getElementById('f-exec-nome').value.trim();
+  if(!nome){showToast('Informe o nome do executor',true);return;}
+  const ativo=document.getElementById('f-exec-ativo').checked;
+  try{
+    if(editingExecutorId){
+      await api('PATCH','/rest/v1/executores?id=eq.'+editingExecutorId,{nome,ativo});
+      showToast('Executor atualizado!');
+    }else{
+      await api('POST','/rest/v1/executores',{nome,ativo});
+      showToast('Executor cadastrado!');
+    }
+    closeModal('modal-executor');
+    await loadExecutores();
+    renderExecutoresView();
+  }catch(e){showToast('Erro ao salvar executor',true);}
+}
+
+async function toggleExecutorAtivo(id,ativo){
+  try{
+    await api('PATCH','/rest/v1/executores?id=eq.'+id,{ativo});
+    await loadExecutores();
+    renderExecutoresView();
+    showToast(ativo?'Executor ativado!':'Executor desativado!');
+  }catch(e){showToast('Erro ao atualizar executor',true);}
+}
+
+loadExecutores();load();
 </script>
 </body>
 </html>
