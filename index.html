@@ -147,6 +147,9 @@
   .page-btn:hover { background:var(--surface2); }
   .page-btn.active { background:var(--text); color:white; border-color:var(--text); }
   .page-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  td.td-editable { cursor:pointer; }
+  tbody tr:hover td.td-editable { background:rgba(0,103,135,0.06); }
+  td.td-editable:hover { outline:1px solid var(--border2); outline-offset:-2px; }
 </style>
 </head>
 <body>
@@ -532,10 +535,11 @@ function renderTable(){
     const di=p.uc_desligamento?` <span class="badge badge-deslig" title="UC vinculada: ${p.uc_desligamento}"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg> Deslig.</span>`:'';
     const d=new Date(p.created_at).toLocaleDateString('pt-BR');
     const execNome=executores.find(e=>e.id===p.executor_id)?.nome||'—';
-    const valFmt=p.valor_acordado!=null?Number(p.valor_acordado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
-    return `<tr onclick="openDetail('${p.id}')"><td class="td-name">${p.nome_titular}</td><td class="td-mono">${p.cpf}</td><td class="td-mono">${p.unidade_consumidora}</td><td>${tb}${di}</td><td>${sb}</td><td style="font-size:12px;color:var(--text2)">${execNome}</td><td class="td-mono" style="font-size:12px;color:var(--text2)">${valFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
+    const custoFmt=p.custo!=null?Number(p.custo).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
+    const negocFmt=p.negociado!=null?Number(p.negociado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
+    return `<tr onclick="openDetail('${p.id}')"><td class="td-name">${p.nome_titular}</td><td class="td-mono">${p.cpf}</td><td class="td-mono">${p.unidade_consumidora}</td><td>${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
   }).join('');
-  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Valor</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
   const pel=document.getElementById('pagination');
   pel.style.display='flex';
@@ -1244,6 +1248,98 @@ async function toggleExecutorAtivo(id,ativo){
     renderExecutoresView();
     showToast(ativo?'Executor ativado!':'Executor desativado!');
   }catch(e){showToast('Erro ao atualizar executor',true);}
+}
+
+function startInlineEdit(event, pedidoId, field, td) {
+  event.stopPropagation();
+  if (td.dataset.editing) return;
+  td.dataset.editing = '1';
+  const p = all.find(x => x.id === pedidoId);
+  if (!p) { delete td.dataset.editing; return; }
+  const originalHTML = td.innerHTML;
+  let input;
+  const baseStyle = 'border:1px solid var(--accent);border-radius:4px;padding:3px 6px;outline:none;width:100%;font-family:Outfit,sans-serif;font-size:12px;background:#fff;';
+  if (field === 'status') {
+    input = document.createElement('select');
+    input.style.cssText = baseStyle + 'cursor:pointer;';
+    Object.entries(SL).forEach(([k,v]) => {
+      const o = document.createElement('option');
+      o.value = k; o.textContent = v;
+      if (k === p.status) o.selected = true;
+      input.appendChild(o);
+    });
+  } else if (field === 'executor_id') {
+    input = document.createElement('select');
+    input.style.cssText = baseStyle + 'cursor:pointer;';
+    const none = document.createElement('option');
+    none.value = ''; none.textContent = '— Nenhum —';
+    if (!p.executor_id) none.selected = true;
+    input.appendChild(none);
+    executores.filter(e => e.ativo).forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.id; o.textContent = e.nome;
+      if (e.id === p.executor_id) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'number'; input.step = '0.01'; input.min = '0';
+    const cv = p[field];
+    if (cv != null) input.value = Number(cv).toFixed(2);
+    input.style.cssText = baseStyle + 'font-family:"DM Mono",monospace;text-align:right;cursor:text;';
+  }
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  input.addEventListener('click', e => e.stopPropagation());
+  let saved = false;
+  const finish = async (doSave) => {
+    if (!td.dataset.editing) return;
+    delete td.dataset.editing;
+    if (!doSave) { td.innerHTML = originalHTML; return; }
+    if (saved) return;
+    saved = true;
+    let body = {};
+    if (field === 'status') {
+      body.status = input.value;
+    } else if (field === 'executor_id') {
+      body.executor_id = input.value || null;
+    } else {
+      const n = input.value === '' ? null : parseFloat(input.value);
+      body[field] = (n == null || isNaN(n)) ? null : Math.round(n * 100) / 100;
+    }
+    try {
+      await api('PATCH', '/rest/v1/pedidos?id=eq.' + pedidoId, body);
+      const idx = all.findIndex(x => x.id === pedidoId);
+      if (idx >= 0) Object.assign(all[idx], body);
+      rebuildCell(td, field, idx >= 0 ? all[idx] : p);
+      td.style.transition = 'background 0.15s';
+      td.style.background = '#D5F0E9';
+      setTimeout(() => { td.style.background = ''; setTimeout(() => { td.style.transition = ''; }, 300); }, 1000);
+      if (field === 'status') updateStats();
+    } catch(err) {
+      td.innerHTML = originalHTML;
+      td.style.transition = 'background 0.15s';
+      td.style.background = '#FEF2F2';
+      setTimeout(() => { td.style.background = ''; setTimeout(() => { td.style.transition = ''; }, 300); }, 1000);
+    }
+  };
+  input.addEventListener('blur', () => finish(true));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    else if (e.key === 'Escape') { delete td.dataset.editing; td.innerHTML = originalHTML; }
+  });
+}
+
+function rebuildCell(td, field, p) {
+  if (!p) return;
+  if (field === 'status') {
+    td.innerHTML = `<span class="badge badge-${p.status}"><span class="badge-dot" style="background:${SC[p.status]}"></span>${SL[p.status]}</span>`;
+  } else if (field === 'executor_id') {
+    td.textContent = executores.find(e => e.id === p.executor_id)?.nome || '—';
+  } else {
+    td.textContent = p[field] != null ? Number(p[field]).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : '—';
+  }
 }
 
 loadExecutores();load();
