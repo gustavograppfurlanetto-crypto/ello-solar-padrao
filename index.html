@@ -200,6 +200,10 @@
     <header class="topbar">
       <span class="topbar-title" id="topbar-title">Todos os pedidos</span>
       <div style="display:flex;gap:8px;">
+        <button id="btn-cadastro-rapido" class="btn btn-ghost" style="color:#004358;border-color:#004358;" onclick="openQuickModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Cadastro rápido
+        </button>
         <button id="btn-novo-pedido" class="btn btn-primary" onclick="openNewModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo pedido
@@ -468,6 +472,27 @@
   </div>
 </div>
 
+<!-- MODAL CADASTRO RÁPIDO -->
+<div class="modal-overlay" id="modal-quick">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">Cadastro rápido</span>
+      <button class="modal-close" onclick="closeModal('modal-quick')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Crie um pedido somente com o nome do contrato. Preencha os demais dados depois via edição.</p>
+      <div class="form-group">
+        <label class="required">Nome do contrato</label>
+        <input type="text" id="f-quick-contrato" placeholder="Ex: Contrato nº 123...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-quick')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveQuick()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <input type="file" id="foto-execucao-input" accept="image/*" style="display:none">
 
@@ -515,7 +540,7 @@ function applyFilters(){
   const t=document.getElementById('filter-tipo').value;
   const st=document.getElementById('filter-status').value||activeStatus;
   filtered=all.filter(p=>{
-    const ms=!s||p.nome_titular.toLowerCase().includes(s)||p.unidade_consumidora.toLowerCase().includes(s)||(p.cpf||'').includes(s);
+    const ms=!s||(p.nome_titular||'').toLowerCase().includes(s)||(p.unidade_consumidora||'').toLowerCase().includes(s)||(p.cpf||'').includes(s)||(p.nome_contrato||'').toLowerCase().includes(s);
     return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st);
   });
   page=1;renderTable();
@@ -532,14 +557,16 @@ function renderTable(){
   }
   const rows=pg.map(p=>{
     const sb=`<span class="badge badge-${p.status}"><span class="badge-dot" style="background:${SC[p.status]}"></span>${SL[p.status]}</span>`;
-    const tb=`<span class="badge badge-tipo">${TL[p.tipo_solicitacao]||p.tipo_solicitacao}</span>`;
+    const tb=p.tipo_solicitacao?`<span class="badge badge-tipo">${TL[p.tipo_solicitacao]||p.tipo_solicitacao}</span>`:'';
     const di=p.uc_desligamento?` <span class="badge badge-deslig" title="UC vinculada: ${p.uc_desligamento}"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg> Deslig.</span>`:'';
     const incompleto=!p.cpf||!p.endereco;
+    const semNomeTitular=!p.nome_titular;
+    const displayNome=p.nome_titular||p.nome_contrato||'—';
     const d=new Date(p.created_at).toLocaleDateString('pt-BR');
     const execNome=executores.find(e=>e.id===p.executor_id)?.nome||'—';
     const custoFmt=p.custo!=null?Number(p.custo).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
     const negocFmt=p.negociado!=null?Number(p.negociado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
-    return `<tr onclick="openDetail('${p.id}')"><td class="td-name">${p.nome_titular}${incompleto?' <span title="Cadastro incompleto" style="color:#F59E0B">⚠️</span>':''}</td><td class="td-mono">${p.cpf||'—'}</td><td class="td-mono">${p.unidade_consumidora}</td><td>${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
+    return `<tr onclick="openDetail('${p.id}')"><td class="td-name">${displayNome}${semNomeTitular?` <span style="background:var(--accent2-bg);color:var(--accent2);font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;vertical-align:middle">Incompleto</span>`:''}${incompleto&&!semNomeTitular?' <span title="Cadastro incompleto" style="color:#F59E0B">⚠️</span>':''}</td><td class="td-mono">${p.cpf||'—'}</td><td class="td-mono">${p.unidade_consumidora||'—'}</td><td>${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
   }).join('');
   document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
@@ -563,7 +590,7 @@ function openDetail(id){
   currentPedido = all.find(x=>x.id===id);
   const p=currentPedido;
   if(!p)return;
-  document.getElementById('detail-title').textContent=p.nome_titular;
+  document.getElementById('detail-title').textContent=p.nome_titular||(p.nome_contrato?'Contrato: '+p.nome_contrato:'Pedido sem nome');
   const d=new Date(p.created_at).toLocaleDateString('pt-BR');
   const dn=p.data_nascimento?new Date(p.data_nascimento+'T00:00:00').toLocaleDateString('pt-BR'):'—';
   const so=Object.entries(SL).filter(([k])=>k!==p.status)
@@ -1140,6 +1167,7 @@ function gerarOSComFoto(){
 document.getElementById('modal-new').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-new');});
 document.getElementById('modal-detail').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-detail');});
 document.getElementById('modal-executor').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-executor');});
+document.getElementById('modal-quick').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-quick');});
 
 function maskMoeda(el){
   let v=el.value.replace(/\D/g,'');
@@ -1176,10 +1204,27 @@ function populateExecutorSelect(){
   if(cur)sel.value=cur;
 }
 
+function openQuickModal(){
+  document.getElementById('f-quick-contrato').value='';
+  document.getElementById('modal-quick').classList.add('open');
+}
+
+async function saveQuick(){
+  const contrato=document.getElementById('f-quick-contrato').value.trim();
+  if(!contrato){showToast('Informe o nome do contrato',true);return;}
+  try{
+    await api('POST','/rest/v1/pedidos',{nome_contrato:contrato,status:'aberto'});
+    showToast('Pedido criado!');
+    closeModal('modal-quick');
+    await load();
+  }catch(e){showToast('Erro ao criar pedido',true);}
+}
+
 function showPedidosView(){
   document.getElementById('view-pedidos').style.display='block';
   document.getElementById('view-executores').style.display='none';
   document.getElementById('btn-novo-pedido').style.display='';
+  document.getElementById('btn-cadastro-rapido').style.display='';
   document.getElementById('btn-novo-executor').style.display='none';
 }
 
@@ -1188,6 +1233,7 @@ function showExecutoresView(btn){
   document.getElementById('view-executores').style.display='block';
   document.getElementById('topbar-title').textContent='Executores';
   document.getElementById('btn-novo-pedido').style.display='none';
+  document.getElementById('btn-cadastro-rapido').style.display='none';
   document.getElementById('btn-novo-executor').style.display='';
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   btn.classList.add('active');
