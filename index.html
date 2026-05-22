@@ -569,7 +569,9 @@ function renderTable(){
     const contratoCell=p.nome_contrato
       ?`${p.nome_contrato}${semNomeTitular?` <span style="background:var(--accent2-bg);color:var(--accent2);font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;vertical-align:middle">Incompleto</span>`:''}`
       :'—';
-    return `<tr onclick="openDetail('${p.id}')"><td class="td-name" style="color:var(--text2)">${contratoCell}</td><td class="td-name">${nomeCell}</td><td class="td-mono">${p.cpf||'—'}</td><td class="td-mono">${p.unidade_consumidora||'—'}</td><td>${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
+    const fpc=p.feito_pelo_cliente;
+    const cb=`<span onclick="toggleFeitoCliente(event,'${p.id}')" title="${fpc?'Feito pelo cliente — clique para desmarcar':'Clique para marcar como feito pelo cliente'}" style="cursor:pointer;background:${fpc?'#BEDB39':'#E5E7EB'};color:${fpc?'#3A4A00':'#9CA3AF'};font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:inline-flex;align-items:center;vertical-align:middle;margin-left:4px;transition:background 0.15s">Cliente</span>`;
+    return `<tr onclick="openDetail('${p.id}')"><td class="td-name" style="color:var(--text2)">${contratoCell}</td><td class="td-name">${nomeCell}</td><td class="td-mono">${p.cpf||'—'}</td><td class="td-mono">${p.unidade_consumidora||'—'}</td><td>${tb}${di}${cb}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
   }).join('');
   document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do contrato</th><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
@@ -1186,6 +1188,22 @@ function parseMoeda(str){
 function formatMoeda(v){
   if(v==null)return'';
   return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+
+async function toggleFeitoCliente(event, id){
+  event.stopPropagation();
+  const idx=all.findIndex(x=>x.id===id);
+  if(idx<0)return;
+  const newVal=!all[idx].feito_pelo_cliente;
+  all[idx].feito_pelo_cliente=newVal;
+  renderTable();
+  try{
+    await api('PATCH','/rest/v1/pedidos?id=eq.'+id,{feito_pelo_cliente:newVal});
+  }catch(e){
+    all[idx].feito_pelo_cliente=!newVal;
+    renderTable();
+    showToast('Erro ao atualizar',true);
+  }
 }
 
 async function loadExecutores(){
