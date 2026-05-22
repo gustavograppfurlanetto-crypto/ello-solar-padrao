@@ -282,12 +282,13 @@
         <div class="form-section-title">Dados do titular</div>
         <div class="form-grid">
           <div class="form-group full"><label class="required">Nome do titular</label><input type="text" id="f-nome" placeholder="Nome completo"></div>
-          <div class="form-group"><label class="required">CPF</label><input type="text" id="f-cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)"></div>
+          <div class="form-group full"><label>Nome do contrato</label><input type="text" id="f-contrato" placeholder="Ex: Contrato nº 123..."></div>
+          <div class="form-group"><label>CPF</label><input type="text" id="f-cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)"></div>
           <div class="form-group"><label>RG</label><input type="text" id="f-rg" placeholder="00.000.000-0"></div>
-          <div class="form-group"><label class="required">Data de nascimento</label><input type="date" id="f-nascimento"></div>
+          <div class="form-group"><label>Data de nascimento</label><input type="date" id="f-nascimento"></div>
           <div class="form-group"><label>Nome da mãe</label><input type="text" id="f-mae" placeholder="Nome da mãe"></div>
           <div class="form-group"><label>Nome do pai</label><input type="text" id="f-pai" placeholder="Nome do pai"></div>
-          <div class="form-group"><label class="required">Telefone</label><input type="text" id="f-telefone" placeholder="(00) 00000-0000" maxlength="15" oninput="maskPhone(this)"></div>
+          <div class="form-group"><label>Telefone</label><input type="text" id="f-telefone" placeholder="(00) 00000-0000" maxlength="15" oninput="maskPhone(this)"></div>
           <div class="form-group"><label>E-mail</label><input type="email" id="f-email" placeholder="email@exemplo.com"></div>
         </div>
       </div>
@@ -296,7 +297,7 @@
         <div class="form-section-title">Localização</div>
         <div class="form-grid">
           <div class="form-group"><label class="required">Unidade consumidora</label><input type="text" id="f-uc" placeholder="Número da UC"></div>
-          <div class="form-group full"><label class="required">Endereço</label><input type="text" id="f-endereco" placeholder="Rua, número, bairro, cidade"></div>
+          <div class="form-group full"><label>Endereço</label><input type="text" id="f-endereco" placeholder="Rua, número, bairro, cidade"></div>
           <div class="form-group full"><label>Ponto de referência</label><input type="text" id="f-referencia" placeholder="Ex: próximo ao mercado..."></div>
           <div class="form-group full"><label>Link da localização</label><input type="text" id="f-localizacao" placeholder="Cole o link do Google Maps..."></div>
         </div>
@@ -514,7 +515,7 @@ function applyFilters(){
   const t=document.getElementById('filter-tipo').value;
   const st=document.getElementById('filter-status').value||activeStatus;
   filtered=all.filter(p=>{
-    const ms=!s||p.nome_titular.toLowerCase().includes(s)||p.unidade_consumidora.toLowerCase().includes(s)||p.cpf.includes(s);
+    const ms=!s||p.nome_titular.toLowerCase().includes(s)||p.unidade_consumidora.toLowerCase().includes(s)||(p.cpf||'').includes(s);
     return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st);
   });
   page=1;renderTable();
@@ -533,11 +534,12 @@ function renderTable(){
     const sb=`<span class="badge badge-${p.status}"><span class="badge-dot" style="background:${SC[p.status]}"></span>${SL[p.status]}</span>`;
     const tb=`<span class="badge badge-tipo">${TL[p.tipo_solicitacao]||p.tipo_solicitacao}</span>`;
     const di=p.uc_desligamento?` <span class="badge badge-deslig" title="UC vinculada: ${p.uc_desligamento}"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg> Deslig.</span>`:'';
+    const incompleto=!p.cpf||!p.endereco;
     const d=new Date(p.created_at).toLocaleDateString('pt-BR');
     const execNome=executores.find(e=>e.id===p.executor_id)?.nome||'—';
     const custoFmt=p.custo!=null?Number(p.custo).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
     const negocFmt=p.negociado!=null?Number(p.negociado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
-    return `<tr onclick="openDetail('${p.id}')"><td class="td-name">${p.nome_titular}</td><td class="td-mono">${p.cpf}</td><td class="td-mono">${p.unidade_consumidora}</td><td>${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
+    return `<tr onclick="openDetail('${p.id}')"><td class="td-name">${p.nome_titular}${incompleto?' <span title="Cadastro incompleto" style="color:#F59E0B">⚠️</span>':''}</td><td class="td-mono">${p.cpf||'—'}</td><td class="td-mono">${p.unidade_consumidora}</td><td>${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
   }).join('');
   document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
@@ -612,6 +614,7 @@ function openDetail(id){
     </div>`;
   }
 
+  const cadastroIncompleto=!p.cpf||!p.endereco||!p.data_nascimento||!p.telefone;
   document.getElementById('detail-body').innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
       <span class="badge badge-${p.status}" style="font-size:12.5px;padding:4px 10px"><span class="badge-dot" style="background:${SC[p.status]}"></span>${SL[p.status]}</span>
@@ -619,18 +622,20 @@ function openDetail(id){
       ${p.uc_desligamento?'<span class="badge badge-deslig"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg> Com desligamento</span>':''}
       <span style="margin-left:auto;font-size:12px;color:var(--text3)">Criado em ${d}</span>
     </div>
+    ${cadastroIncompleto?`<div style="background:#FFF0E0;border:1px solid #FED7AA;border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;font-size:13px;color:#C25A00"><span>⚠️</span> Cadastro incompleto — complete os dados via edição</div>`:''}
     <div class="detail-section">
       <div class="detail-section-title">Dados do titular</div>
       <div class="detail-grid">
-        <div class="detail-item"><div class="detail-label">CPF</div><div class="detail-value">${p.cpf}</div></div>
+        ${p.nome_contrato?`<div class="detail-full"><div class="detail-label">Nome do contrato</div><div class="detail-value">${p.nome_contrato}</div></div>`:''}
+        <div class="detail-item"><div class="detail-label">CPF</div><div class="detail-value">${p.cpf||'—'}</div></div>
         ${p.rg?`<div class="detail-item"><div class="detail-label">RG</div><div class="detail-value">${p.rg}</div></div>`:''}
         <div class="detail-item"><div class="detail-label">Data de nascimento</div><div class="detail-value">${dn}</div></div>
-        <div class="detail-item"><div class="detail-label">Telefone</div><div class="detail-value">${p.telefone}</div></div>
+        <div class="detail-item"><div class="detail-label">Telefone</div><div class="detail-value">${p.telefone||'—'}</div></div>
         <div class="detail-item"><div class="detail-label">E-mail</div><div class="detail-value">${p.email||'—'}</div></div>
         <div class="detail-item"><div class="detail-label">Nome da mãe</div><div class="detail-value">${p.nome_mae||'—'}</div></div>
         <div class="detail-item"><div class="detail-label">Nome do pai</div><div class="detail-value">${p.nome_pai||'—'}</div></div>
         <div class="detail-full"><div class="detail-label">Unidade consumidora</div><div class="detail-value">${p.unidade_consumidora}</div></div>
-        <div class="detail-full"><div class="detail-label">Endereço</div><div class="detail-value">${p.endereco}${p.ponto_referencia?' — '+p.ponto_referencia:''}</div></div>
+        <div class="detail-full"><div class="detail-label">Endereço</div><div class="detail-value">${p.endereco||'—'}${p.ponto_referencia&&p.endereco?' — '+p.ponto_referencia:''}</div></div>
         ${p.link_localizacao?`<div class="detail-full"><div class="detail-label">Link da localização</div><div class="detail-value"><a href="${p.link_localizacao}" target="_blank" style="color:var(--accent2);word-break:break-all">${p.link_localizacao}</a></div></div>`:''}
         ${p.observacoes?`<div class="detail-full"><div class="detail-label">Observações</div><div class="detail-value">${p.observacoes}</div></div>`:''}
       </div>
@@ -654,6 +659,7 @@ function openEditModal(){
   editingId=p.id;
   closeModal('modal-detail');
   document.getElementById('f-nome').value=p.nome_titular||'';
+  document.getElementById('f-contrato').value=p.nome_contrato||'';
   document.getElementById('f-cpf').value=p.cpf||'';
   document.getElementById('f-rg').value=p.rg||'';
   document.getElementById('f-nascimento').value=p.data_nascimento||'';
@@ -855,7 +861,7 @@ async function savePedido(){
   const tel=document.getElementById('f-telefone').value.trim();
   const end=document.getElementById('f-endereco').value.trim();
   const tipo=document.getElementById('f-tipo').value;
-  if(!nome||!cpf||!nasc||!uc||!tel||!end||!tipo){showToast('Preencha todos os campos obrigatórios',true);return;}
+  if(!nome||!uc||!tipo){showToast('Preencha todos os campos obrigatórios',true);return;}
   const conexao=document.getElementById('f-conexao').value;
   if(tipo==='alteracao_conexao'&&!conexao){showToast('Selecione o tipo de conexão',true);return;}
   const temD=document.getElementById('f-tem-deslig').checked;
@@ -876,12 +882,13 @@ async function savePedido(){
     }
   }
   const body={
-    nome_titular:nome,cpf,rg:rg||null,data_nascimento:nasc,unidade_consumidora:uc,telefone:tel,
+    nome_titular:nome,cpf:cpf||null,rg:rg||null,data_nascimento:nasc||null,unidade_consumidora:uc,telefone:tel||null,
     email:document.getElementById('f-email').value.trim()||null,
     nome_mae:document.getElementById('f-mae').value.trim()||null,
     nome_pai:document.getElementById('f-pai').value.trim()||null,
-    endereco:end,ponto_referencia:document.getElementById('f-referencia').value.trim()||null,
+    endereco:end||null,ponto_referencia:document.getElementById('f-referencia').value.trim()||null,
     link_localizacao:document.getElementById('f-localizacao').value.trim()||null,
+    nome_contrato:document.getElementById('f-contrato').value.trim()||null,
     tipo_solicitacao:tipo,tipo_conexao:tipo==='alteracao_conexao'?conexao:null,
     uc_desligamento:ucD,titular_desligamento:titD,cpf_desligamento:cpfD,
     nascimento_desligamento:nascD,nome_mae_desligamento:maeD,nome_pai_desligamento:paiD,
@@ -939,7 +946,7 @@ function clearForm(){
   editingId=null;
   document.getElementById('modal-new-title').textContent='Novo pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar pedido';
-  ['f-nome','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-localizacao','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig','f-valor'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-nome','f-contrato','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-localizacao','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig','f-valor'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-executor').value='';
   document.getElementById('f-tipo').value='';
   document.getElementById('f-conexao').value='';
@@ -1043,6 +1050,7 @@ async function gerarOS(tipo, fotoBase64=null){
   <div style="margin-bottom:14px">${secTitle('Dados do titular')}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px 16px">
       <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Nome do titular</span><span style="font-size:15px;font-weight:600">${p.nome_titular}</span></div>
+      ${p.nome_contrato?`<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Nome do contrato</span><span style="font-size:13px;font-weight:500">${p.nome_contrato}</span></div>`:''}
       ${row('CPF',p.cpf,true)}${p.rg?row('RG',p.rg,true):''}${row('Data de nascimento',dn)}
       ${row('Telefone',p.telefone)}${row('E-mail',p.email||'—')}
       ${row('Nome da mãe',p.nome_mae||'—')}${row('Nome do pai',p.nome_pai||'—')}
@@ -1051,7 +1059,7 @@ async function gerarOS(tipo, fotoBase64=null){
   <div style="margin-bottom:14px">${secTitle('Localização')}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px 16px">
       ${row('Unidade consumidora',p.unidade_consumidora,true)}${row('Status',SL[p.status])}
-      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Endereço</span><span>${p.endereco}${p.ponto_referencia?' — '+p.ponto_referencia:''}</span></div>
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:1px"><span style="font-size:9px;color:#9E9D98;text-transform:uppercase">Endereço</span><span>${p.endereco||'—'}${p.ponto_referencia&&p.endereco?' — '+p.ponto_referencia:''}</span></div>
     </div>
   </div>
   <div style="margin-bottom:14px">${secTitle('Tipo de solicitação')}
