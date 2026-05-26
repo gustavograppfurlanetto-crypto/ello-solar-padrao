@@ -73,6 +73,8 @@
   .exec-filter-btn:last-child { border-right:none; }
   .exec-filter-btn.active-dark { background:#004358; color:#fff; font-weight:600; }
   .exec-filter-btn.active-green { background:#BEDB39; color:#2D3A00; font-weight:600; }
+  .exec-filter-btn.active-teal { background:#1F8A70; color:#fff; font-weight:600; }
+  .exec-filter-btn.active-orange { background:#FD7400; color:#fff; font-weight:600; }
   table { width:100%; border-collapse:collapse; }
   thead th { padding:10px 16px; text-align:left; font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color:var(--text2); background:var(--surface2); border-bottom:1px solid var(--border); }
   tbody tr { border-bottom:1px solid var(--border); transition:background 0.1s; cursor:pointer; }
@@ -258,6 +260,11 @@
               <button class="exec-filter-btn active-dark" id="btn-exec-todos" onclick="setExecFilter('all')">Todos (<span id="cnt-exec-todos">0</span>)</button>
               <button class="exec-filter-btn" id="btn-exec-empresa" onclick="setExecFilter('empresa')">Execução Empresa (<span id="cnt-exec-empresa">0</span>)</button>
               <button class="exec-filter-btn" id="btn-exec-cliente" onclick="setExecFilter('cliente')">Execução Cliente (<span id="cnt-exec-cliente">0</span>)</button>
+            </div>
+            <div class="exec-filter-group">
+              <button class="exec-filter-btn active-dark" id="btn-cad-todos" onclick="setCadastroFilter('all')">Todos (<span id="cnt-cad-todos">0</span>)</button>
+              <button class="exec-filter-btn" id="btn-cad-completos" onclick="setCadastroFilter('completos')">Completos (<span id="cnt-cad-completos">0</span>)</button>
+              <button class="exec-filter-btn" id="btn-cad-incompletos" onclick="setCadastroFilter('incompletos')">Incompletos (<span id="cnt-cad-incompletos">0</span>)</button>
             </div>
           </div>
         </div>
@@ -511,7 +518,7 @@ const SURL='https://zsaomhnehwervejkldam.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
 const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
-let all=[],filtered=[],page=1,activeStatus='',filterExecMode='all';
+let all=[],filtered=[],page=1,activeStatus='',filterExecMode='all',filterCadastroMode='all';
 let editingId=null;
 let executores=[],editingExecutorId=null;
 const PER=10;
@@ -559,6 +566,20 @@ function updateExecClienteCounts(base){
   document.getElementById('cnt-exec-cliente').textContent=base.filter(p=>p.feito_pelo_cliente).length;
 }
 
+function setCadastroFilter(mode){
+  filterCadastroMode=mode;
+  document.getElementById('btn-cad-todos').className='exec-filter-btn'+(mode==='all'?' active-dark':'');
+  document.getElementById('btn-cad-completos').className='exec-filter-btn'+(mode==='completos'?' active-teal':'');
+  document.getElementById('btn-cad-incompletos').className='exec-filter-btn'+(mode==='incompletos'?' active-orange':'');
+  applyFilters();
+}
+
+function updateCadastroCounts(base){
+  document.getElementById('cnt-cad-todos').textContent=base.length;
+  document.getElementById('cnt-cad-completos').textContent=base.filter(p=>p.nome_titular&&p.nome_titular.trim()).length;
+  document.getElementById('cnt-cad-incompletos').textContent=base.filter(p=>!p.nome_titular||!p.nome_titular.trim()).length;
+}
+
 function applyFilters(){
   const s=document.getElementById('search-input').value.toLowerCase();
   const t=document.getElementById('filter-tipo').value;
@@ -568,9 +589,10 @@ function applyFilters(){
     return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st);
   });
   updateExecClienteCounts(base);
-  if(filterExecMode==='empresa') filtered=base.filter(p=>!p.feito_pelo_cliente);
-  else if(filterExecMode==='cliente') filtered=base.filter(p=>p.feito_pelo_cliente);
-  else filtered=base;
+  const afterExec=filterExecMode==='empresa'?base.filter(p=>!p.feito_pelo_cliente):filterExecMode==='cliente'?base.filter(p=>p.feito_pelo_cliente):base;
+  updateCadastroCounts(afterExec);
+  const afterCad=filterCadastroMode==='completos'?afterExec.filter(p=>p.nome_titular&&p.nome_titular.trim()):filterCadastroMode==='incompletos'?afterExec.filter(p=>!p.nome_titular||!p.nome_titular.trim()):afterExec;
+  filtered=afterCad;
   page=1;renderTable();
 }
 
