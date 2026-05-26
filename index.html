@@ -68,8 +68,11 @@
   .search-input input { border:none; background:none; outline:none; font-family:'Outfit',sans-serif; font-size:13px; color:var(--text); width:200px; }
   .search-input input::placeholder { color:var(--text3); }
   .filter-select { border:1px solid var(--border2); background:var(--surface2); border-radius:var(--radius-sm); padding:6px 10px; font-family:'Outfit',sans-serif; font-size:13px; color:var(--text2); outline:none; cursor:pointer; }
-  .btn-filter-toggle { border:1px solid var(--border2); background:var(--surface2); border-radius:var(--radius-sm); padding:6px 10px; font-family:'Outfit',sans-serif; font-size:13px; color:var(--text2); cursor:pointer; transition:all 0.15s; white-space:nowrap; }
-  .btn-filter-toggle.active { background:#BEDB39; color:#2D3A00; border-color:#a8c230; font-weight:600; }
+  .exec-filter-group { display:inline-flex; border:1px solid var(--border2); border-radius:var(--radius-sm); overflow:hidden; }
+  .exec-filter-btn { border:none; background:var(--surface2); padding:6px 11px; font-family:'Outfit',sans-serif; font-size:13px; color:var(--text2); cursor:pointer; transition:all 0.15s; white-space:nowrap; border-right:1px solid var(--border2); }
+  .exec-filter-btn:last-child { border-right:none; }
+  .exec-filter-btn.active-dark { background:#004358; color:#fff; font-weight:600; }
+  .exec-filter-btn.active-green { background:#BEDB39; color:#2D3A00; font-weight:600; }
   table { width:100%; border-collapse:collapse; }
   thead th { padding:10px 16px; text-align:left; font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color:var(--text2); background:var(--surface2); border-bottom:1px solid var(--border); }
   tbody tr { border-bottom:1px solid var(--border); transition:background 0.1s; cursor:pointer; }
@@ -251,7 +254,11 @@
               <option value="em_andamento">Em andamento</option>
               <option value="concluido">Concluído</option>
             </select>
-            <button class="btn-filter-toggle" id="btn-exec-cliente" onclick="toggleExecCliente()">Execução Cliente (<span id="count-exec-cliente">0</span>)</button>
+            <div class="exec-filter-group">
+              <button class="exec-filter-btn active-dark" id="btn-exec-todos" onclick="setExecFilter('all')">Todos (<span id="cnt-exec-todos">0</span>)</button>
+              <button class="exec-filter-btn" id="btn-exec-empresa" onclick="setExecFilter('empresa')">Execução Empresa (<span id="cnt-exec-empresa">0</span>)</button>
+              <button class="exec-filter-btn" id="btn-exec-cliente" onclick="setExecFilter('cliente')">Execução Cliente (<span id="cnt-exec-cliente">0</span>)</button>
+            </div>
           </div>
         </div>
         <div id="table-container"><div class="loading"><div class="spinner"></div> Carregando pedidos...</div></div>
@@ -504,7 +511,7 @@ const SURL='https://zsaomhnehwervejkldam.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
 const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
-let all=[],filtered=[],page=1,activeStatus='',filterExecCliente=false;
+let all=[],filtered=[],page=1,activeStatus='',filterExecMode='all';
 let editingId=null;
 let executores=[],editingExecutorId=null;
 const PER=10;
@@ -525,7 +532,7 @@ async function api(m,p,b){
 async function load(){
   try{
     all=await api('GET','/rest/v1/pedidos?select=*&order=created_at.desc');
-    applyFilters();updateStats();updateExecClienteCount();
+    applyFilters();updateStats();
   }catch(e){
     document.getElementById('table-container').innerHTML='<div class="empty-state"><p style="color:var(--danger)">Erro ao carregar pedidos.</p></div>';
   }
@@ -538,25 +545,32 @@ function updateStats(){
   document.getElementById('sidebar-total').textContent=all.length;
 }
 
-function toggleExecCliente(){
-  filterExecCliente=!filterExecCliente;
-  document.getElementById('btn-exec-cliente').classList.toggle('active',filterExecCliente);
+function setExecFilter(mode){
+  filterExecMode=mode;
+  document.getElementById('btn-exec-todos').className='exec-filter-btn'+(mode==='all'?' active-dark':'');
+  document.getElementById('btn-exec-empresa').className='exec-filter-btn'+(mode==='empresa'?' active-dark':'');
+  document.getElementById('btn-exec-cliente').className='exec-filter-btn'+(mode==='cliente'?' active-green':'');
   applyFilters();
 }
 
-function updateExecClienteCount(){
-  const n=all.filter(p=>p.feito_pelo_cliente).length;
-  document.getElementById('count-exec-cliente').textContent=n;
+function updateExecClienteCounts(base){
+  document.getElementById('cnt-exec-todos').textContent=base.length;
+  document.getElementById('cnt-exec-empresa').textContent=base.filter(p=>!p.feito_pelo_cliente).length;
+  document.getElementById('cnt-exec-cliente').textContent=base.filter(p=>p.feito_pelo_cliente).length;
 }
 
 function applyFilters(){
   const s=document.getElementById('search-input').value.toLowerCase();
   const t=document.getElementById('filter-tipo').value;
   const st=document.getElementById('filter-status').value||activeStatus;
-  filtered=all.filter(p=>{
+  const base=all.filter(p=>{
     const ms=!s||(p.nome_titular||'').toLowerCase().includes(s)||(p.unidade_consumidora||'').toLowerCase().includes(s)||(p.cpf||'').includes(s)||(p.nome_contrato||'').toLowerCase().includes(s);
-    return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st)&&(!filterExecCliente||p.feito_pelo_cliente);
+    return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st);
   });
+  updateExecClienteCounts(base);
+  if(filterExecMode==='empresa') filtered=base.filter(p=>!p.feito_pelo_cliente);
+  else if(filterExecMode==='cliente') filtered=base.filter(p=>p.feito_pelo_cliente);
+  else filtered=base;
   page=1;renderTable();
 }
 
@@ -1210,12 +1224,12 @@ async function toggleFeitoCliente(event, id){
   if(idx<0)return;
   const newVal=!all[idx].feito_pelo_cliente;
   all[idx].feito_pelo_cliente=newVal;
-  renderTable();updateExecClienteCount();
+  applyFilters();
   try{
     await api('PATCH','/rest/v1/pedidos?id=eq.'+id,{feito_pelo_cliente:newVal});
   }catch(e){
     all[idx].feito_pelo_cliente=!newVal;
-    renderTable();updateExecClienteCount();
+    applyFilters();
     showToast('Erro ao atualizar',true);
   }
 }
