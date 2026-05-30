@@ -568,8 +568,8 @@ function setExecFilter(mode){
 
 function updateExecClienteCounts(base){
   document.getElementById('cnt-exec-todos').textContent=base.length;
-  document.getElementById('cnt-exec-empresa').textContent=base.filter(p=>!p.feito_pelo_cliente).length;
-  document.getElementById('cnt-exec-cliente').textContent=base.filter(p=>p.feito_pelo_cliente).length;
+  document.getElementById('cnt-exec-empresa').textContent=base.filter(p=>p.feito_pelo_cliente!==true).length;
+  document.getElementById('cnt-exec-cliente').textContent=base.filter(p=>p.feito_pelo_cliente===true).length;
 }
 
 function setCadastroFilter(mode){
@@ -596,8 +596,8 @@ function setDocsFilter(mode){
 
 function updateDocsCounts(base){
   document.getElementById('cnt-docs-todos').textContent=base.length;
-  document.getElementById('cnt-docs-com').textContent=base.filter(p=>p.docs_recebidos).length;
-  document.getElementById('cnt-docs-sem').textContent=base.filter(p=>!p.docs_recebidos).length;
+  document.getElementById('cnt-docs-com').textContent=base.filter(p=>p.docs_recebidos===true).length;
+  document.getElementById('cnt-docs-sem').textContent=base.filter(p=>p.docs_recebidos!==true).length;
 }
 
 function applyFilters(){
@@ -609,11 +609,11 @@ function applyFilters(){
     return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st);
   });
   updateExecClienteCounts(base);
-  const afterExec=filterExecMode==='empresa'?base.filter(p=>!p.feito_pelo_cliente):filterExecMode==='cliente'?base.filter(p=>p.feito_pelo_cliente):base;
+  const afterExec=filterExecMode==='empresa'?base.filter(p=>p.feito_pelo_cliente!==true):filterExecMode==='cliente'?base.filter(p=>p.feito_pelo_cliente===true):base;
   updateCadastroCounts(afterExec);
   const afterCad=filterCadastroMode==='completos'?afterExec.filter(p=>p.nome_titular&&p.nome_titular.trim()):filterCadastroMode==='incompletos'?afterExec.filter(p=>!p.nome_titular||!p.nome_titular.trim()):afterExec;
   updateDocsCounts(afterCad);
-  const afterDocs=filterDocsMode==='com_docs'?afterCad.filter(p=>p.docs_recebidos):filterDocsMode==='sem_docs'?afterCad.filter(p=>!p.docs_recebidos):afterCad;
+  const afterDocs=filterDocsMode==='com_docs'?afterCad.filter(p=>p.docs_recebidos===true):filterDocsMode==='sem_docs'?afterCad.filter(p=>p.docs_recebidos!==true):afterCad;
   filtered=afterDocs;
   page=1;renderTable();
 }
