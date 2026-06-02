@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Avaliações — Ello Solar</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #EEF3F5; --surface: #fff; --border: #C8DDE5;
+    --text: #002A38; --text2: #3D6472; --text3: #7A9DAA;
+    --accent: #004358; --accent2: #FD7400;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow: 0 2px 8px rgba(0,67,88,0.09);
+    --shadow-md: 0 4px 20px rgba(0,67,88,0.13);
+  }
+  body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Header */
+  .header {
+    background: var(--accent);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header img { height: 38px; object-fit: contain; filter: brightness(0) invert(1); }
+  .header-title { color: #fff; font-size: 16px; font-weight: 600; border-left: 2px solid rgba(255,255,255,0.25); padding-left: 16px; }
+  .badge-live { background: #FD7400; color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; letter-spacing: 0.5px; }
+
+  .content { max-width: 1100px; margin: 0 auto; padding: 32px 24px 48px; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .stat-card.blue::before  { background: #004358; }
+  .stat-card.orange::before { background: #FD7400; }
+  .stat-card.green::before  { background: #1F8A70; }
+  .stat-card.red::before    { background: #B91C1C; }
+  .stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+  .stat-value { font-size: 32px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -1px; }
+  .stat-value.blue   { color: #004358; }
+  .stat-value.orange { color: #FD7400; }
+  .stat-value.green  { color: #1F8A70; }
+  .stat-value.red    { color: #B91C1C; }
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+  /* Chart */
+  .chart-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 24px 24px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+  }
+  .chart-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 20px; }
+  .chart-wrap { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .bar-outer { width: 100%; background: #EEF3F5; border-radius: 6px 6px 0 0; display: flex; align-items: flex-end; overflow: hidden; height: 90px; }
+  .bar-inner {
+    width: 100%;
+    border-radius: 6px 6px 0 0;
+    transition: height 0.6s ease;
+    min-height: 0;
+  }
+  .bar-count { font-size: 11px; font-weight: 600; color: var(--text2); font-family: 'DM Mono', monospace; }
+  .bar-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+  /* bar colors */
+  .bar-0,.bar-1,.bar-2,.bar-3,.bar-4,.bar-5,.bar-6 { background: #DC4444; }
+  .bar-7,.bar-8 { background: #C8A800; }
+  .bar-9,.bar-10 { background: #1F8A70; }
+
+  /* Table */
+  .table-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .table-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #F7FBFC;
+  }
+  .table-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .table-count { font-size: 12px; color: var(--text3); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    padding: 10px 20px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text2);
+    background: #F0F7FA;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid #EEF3F5; transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #F7FBFC; }
+  td { padding: 13px 20px; font-size: 13.5px; color: var(--text); vertical-align: middle; }
+  .nota-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 14px;
+    color: #fff;
+  }
+  .nota-red    { background: #DC4444; }
+  .nota-yellow { background: #C8A800; }
+  .nota-green  { background: #1F8A70; }
+  .sem-comentario { color: var(--text3); font-style: italic; font-size: 13px; }
+  .loading { text-align: center; padding: 48px; color: var(--text3); font-size: 14px; }
+  .empty { text-align: center; padding: 48px; color: var(--text3); font-size: 14px; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 28px 16px 16px;
+    font-size: 13px;
+    color: var(--text3);
+  }
+  footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  footer a:hover { color: var(--accent2); }
+
+  @media (max-width: 700px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .header { padding: 0 16px; }
+    .content { padding: 20px 12px 40px; }
+    thead th:nth-child(3), td:nth-child(3) { display: none; }
+  }
+  @media (max-width: 400px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <img src="https://zsaomhnehwervejkldam.supabase.co/storage/v1/object/public/assets/logo_ello.png"
+         alt="Ello Solar"
+         onerror="this.outerHTML='<div style=\'font-size:16px;font-weight:700;color:#fff\'>ELLO SOLAR</div>'">
+    <span class="header-title">Painel de Avaliações</span>
+  </div>
+  <span class="badge-live">AO VIVO</span>
+</div>
+
+<div class="content">
+
+  <!-- Stats -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card blue">
+      <div class="stat-label">Média Geral</div>
+      <div class="stat-value blue" id="stat-media">—</div>
+      <div class="stat-sub">de 0 a 10</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Total de Avaliações</div>
+      <div class="stat-value orange" id="stat-total">—</div>
+      <div class="stat-sub">respostas</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Promotores</div>
+      <div class="stat-value green" id="stat-promotores">—</div>
+      <div class="stat-sub">notas 9 e 10</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Detratores</div>
+      <div class="stat-value red" id="stat-detratores">—</div>
+      <div class="stat-sub">notas 0 a 6</div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-card">
+    <div class="chart-title">Distribuição das notas</div>
+    <div class="chart-wrap" id="chart-wrap">
+      <div class="loading">Carregando gráfico...</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <span class="table-title">Todas as avaliações</span>
+      <span class="table-count" id="table-count"></span>
+    </div>
+    <div id="table-wrap">
+      <div class="loading">Carregando avaliações...</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <a href="index.html">← Voltar ao sistema</a>
+  &nbsp;·&nbsp; Dados atualizados automaticamente
+</footer>
+
+<script>
+  const SUPABASE_URL = 'https://zsaomhnehwervejkldam.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
+
+  function notaClass(n) {
+    if (n <= 6) return 'nota-red';
+    if (n <= 8) return 'nota-yellow';
+    return 'nota-green';
+  }
+
+  function barClass(n) {
+    if (n <= 6) return 'bar-' + n;
+    if (n <= 8) return 'bar-' + n;
+    return 'bar-' + n;
+  }
+
+  function formatDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function carregar() {
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/avaliacoes?select=*&order=created_at.desc`,
+        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+      );
+      const data = await res.json();
+      renderStats(data);
+      renderChart(data);
+      renderTable(data);
+    } catch (e) {
+      document.getElementById('table-wrap').innerHTML = '<div class="empty">Erro ao carregar avaliações.</div>';
+    }
+  }
+
+  function renderStats(data) {
+    const total = data.length;
+    if (total === 0) {
+      document.getElementById('stat-media').textContent = '—';
+      document.getElementById('stat-total').textContent = '0';
+      document.getElementById('stat-promotores').textContent = '—';
+      document.getElementById('stat-detratores').textContent = '—';
+      return;
+    }
+    const soma = data.reduce((s, r) => s + r.nota, 0);
+    const media = (soma / total).toFixed(1);
+    const promotores = data.filter(r => r.nota >= 9).length;
+    const detratores = data.filter(r => r.nota <= 6).length;
+
+    document.getElementById('stat-media').textContent = media;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-promotores').textContent = Math.round(promotores / total * 100) + '%';
+    document.getElementById('stat-detratores').textContent = Math.round(detratores / total * 100) + '%';
+  }
+
+  function renderChart(data) {
+    const counts = Array(11).fill(0);
+    data.forEach(r => { if (r.nota >= 0 && r.nota <= 10) counts[r.nota]++; });
+    const max = Math.max(...counts, 1);
+
+    const wrap = document.getElementById('chart-wrap');
+    wrap.innerHTML = '';
+
+    for (let i = 0; i <= 10; i++) {
+      const pct = Math.round((counts[i] / max) * 90);
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+      col.innerHTML = `
+        <div class="bar-count">${counts[i] > 0 ? counts[i] : ''}</div>
+        <div class="bar-outer">
+          <div class="bar-inner bar-${i}" style="height:${pct}px"></div>
+        </div>
+        <div class="bar-label">${i}</div>
+      `;
+      wrap.appendChild(col);
+    }
+  }
+
+  function renderTable(data) {
+    const wrap = document.getElementById('table-wrap');
+    document.getElementById('table-count').textContent = data.length + (data.length === 1 ? ' avaliação' : ' avaliações');
+
+    if (data.length === 0) {
+      wrap.innerHTML = '<div class="empty">Nenhuma avaliação recebida ainda.</div>';
+      return;
+    }
+
+    const rows = data.map(r => `
+      <tr>
+        <td style="color:var(--text2);font-size:13px;">${formatDate(r.created_at)}</td>
+        <td><span class="nota-pill ${notaClass(r.nota)}">${r.nota}</span></td>
+        <td>${r.comentario ? r.comentario : '<span class="sem-comentario">Sem comentário</span>'}</td>
+      </tr>
+    `).join('');
+
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th style="width:160px">Data</th>
+            <th style="width:80px">Nota</th>
+            <th>Comentário</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  carregar();
+  setInterval(carregar, 60000);
+</script>
+</body>
+</html>

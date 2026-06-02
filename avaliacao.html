@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avaliação — Ello Solar</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: linear-gradient(135deg, #EEF3F5 0%, #D6E8EF 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    color: #002A38;
+  }
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(0,67,88,0.14);
+    padding: 40px 36px 36px;
+    max-width: 560px;
+    width: 100%;
+    text-align: center;
+  }
+  .logo-wrap {
+    margin-bottom: 28px;
+  }
+  .logo-wrap img {
+    height: 52px;
+    object-fit: contain;
+  }
+  .divider {
+    height: 3px;
+    background: linear-gradient(90deg, #004358, #FD7400);
+    border-radius: 2px;
+    margin: 0 auto 28px;
+    width: 60px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #004358;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: #3D6472;
+    margin-bottom: 32px;
+  }
+  .label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #004358;
+    margin-bottom: 14px;
+    text-align: left;
+  }
+  .nps-grid {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .nps-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 14px 4px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+    color: #fff;
+    position: relative;
+  }
+  .nps-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+  .nps-btn.selected { transform: scale(1.12); box-shadow: 0 6px 18px rgba(0,0,0,0.22); outline: 3px solid #fff; z-index: 1; }
+  .nps-btn.not-selected { opacity: 0.42; }
+  /* 0-6 vermelho */
+  .nps-btn[data-v="0"] { background: #B91C1C; }
+  .nps-btn[data-v="1"] { background: #C42020; }
+  .nps-btn[data-v="2"] { background: #D12626; }
+  .nps-btn[data-v="3"] { background: #DC2F2F; }
+  .nps-btn[data-v="4"] { background: #E44040; }
+  .nps-btn[data-v="5"] { background: #E85A2A; }
+  .nps-btn[data-v="6"] { background: #EA7020; }
+  /* 7-8 amarelo */
+  .nps-btn[data-v="7"] { background: #D4A017; }
+  .nps-btn[data-v="8"] { background: #C8A800; }
+  /* 9-10 verde */
+  .nps-btn[data-v="9"]  { background: #1F8A70; }
+  .nps-btn[data-v="10"] { background: #157A60; }
+  .nps-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    font-size: 11px;
+    color: #7A9DAA;
+  }
+  .comment-wrap {
+    text-align: left;
+    margin-bottom: 28px;
+  }
+  .comment-wrap textarea {
+    width: 100%;
+    border: 1.5px solid #C8DDE5;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    color: #002A38;
+    resize: vertical;
+    min-height: 90px;
+    outline: none;
+    transition: border-color 0.15s;
+    background: #F7FBFC;
+  }
+  .comment-wrap textarea:focus { border-color: #004358; background: #fff; }
+  .comment-wrap textarea::placeholder { color: #A0B8C2; }
+  .btn-submit {
+    background: #FD7400;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 15px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-submit:hover { background: #D96300; }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled { background: #AAC8D4; cursor: not-allowed; }
+  .error-msg {
+    color: #B91C1C;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+  /* Tela de agradecimento */
+  .thank-you {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+  }
+  .thank-you .star-icon {
+    font-size: 64px;
+    line-height: 1;
+  }
+  .thank-you h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #004358;
+  }
+  .thank-you p {
+    font-size: 15px;
+    color: #3D6472;
+    line-height: 1.5;
+  }
+  .thank-you .nota-badge {
+    background: #EEF3F5;
+    border-radius: 50px;
+    padding: 8px 22px;
+    font-size: 14px;
+    color: #004358;
+    font-weight: 500;
+  }
+  @media (max-width: 520px) {
+    .card { padding: 28px 16px 24px; }
+    .nps-btn { padding: 12px 2px; font-size: 13px; }
+    h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <!-- Formulário -->
+  <div id="form-section">
+    <div class="logo-wrap">
+      <img src="https://zsaomhnehwervejkldam.supabase.co/storage/v1/object/public/assets/logo_ello.png"
+           alt="Ello Solar"
+           onerror="this.outerHTML='<div style=\'font-size:20px;font-weight:700;color:#004358\'>ELLO SOLAR<div style=\'font-size:12px;color:#FD7400;font-weight:500\'>Energia Renovável</div></div>'">
+    </div>
+    <div class="divider"></div>
+    <h1>Como foi sua experiência com a Ello Solar?</h1>
+    <p class="subtitle">Sua opinião é muito importante para nós</p>
+
+    <p class="label">Selecione uma nota de 0 a 10:</p>
+    <div class="nps-grid" id="nps-grid">
+      <button class="nps-btn" data-v="0"  type="button">0</button>
+      <button class="nps-btn" data-v="1"  type="button">1</button>
+      <button class="nps-btn" data-v="2"  type="button">2</button>
+      <button class="nps-btn" data-v="3"  type="button">3</button>
+      <button class="nps-btn" data-v="4"  type="button">4</button>
+      <button class="nps-btn" data-v="5"  type="button">5</button>
+      <button class="nps-btn" data-v="6"  type="button">6</button>
+      <button class="nps-btn" data-v="7"  type="button">7</button>
+      <button class="nps-btn" data-v="8"  type="button">8</button>
+      <button class="nps-btn" data-v="9"  type="button">9</button>
+      <button class="nps-btn" data-v="10" type="button">10</button>
+    </div>
+    <div class="nps-labels">
+      <span>Muito insatisfeito</span>
+      <span>Muito satisfeito</span>
+    </div>
+
+    <div class="comment-wrap">
+      <p class="label">Deixe um comentário (opcional):</p>
+      <textarea id="comentario" placeholder="Conte mais sobre sua experiência..."></textarea>
+    </div>
+
+    <button class="btn-submit" id="btn-enviar" disabled onclick="enviar()">Enviar avaliação</button>
+    <p class="error-msg" id="error-msg">Por favor, selecione uma nota antes de enviar.</p>
+  </div>
+
+  <!-- Agradecimento -->
+  <div class="thank-you" id="thank-you">
+    <div class="logo-wrap">
+      <img src="https://zsaomhnehwervejkldam.supabase.co/storage/v1/object/public/assets/logo_ello.png"
+           alt="Ello Solar"
+           onerror="this.outerHTML='<div style=\'font-size:20px;font-weight:700;color:#004358\'>ELLO SOLAR</div>'">
+    </div>
+    <div class="star-icon">🌟</div>
+    <h2>Obrigado pela sua avaliação!</h2>
+    <p>Sua opinião nos ajuda a melhorar cada vez mais<br>e entregar o melhor serviço de energia solar.</p>
+    <div class="nota-badge" id="nota-enviada"></div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://zsaomhnehwervejkldam.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
+
+  let notaSelecionada = null;
+
+  document.querySelectorAll('.nps-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      notaSelecionada = parseInt(btn.dataset.v);
+      document.querySelectorAll('.nps-btn').forEach(b => {
+        b.classList.toggle('selected', b === btn);
+        b.classList.toggle('not-selected', b !== btn);
+      });
+      document.getElementById('btn-enviar').disabled = false;
+      document.getElementById('error-msg').style.display = 'none';
+    });
+  });
+
+  async function enviar() {
+    if (notaSelecionada === null) {
+      document.getElementById('error-msg').style.display = 'block';
+      return;
+    }
+    const comentario = document.getElementById('comentario').value.trim() || null;
+    const btn = document.getElementById('btn-enviar');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/avaliacoes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON,
+          'Authorization': `Bearer ${SUPABASE_ANON}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ nota: notaSelecionada, comentario })
+      });
+
+      if (!res.ok) throw new Error('Erro ao enviar');
+
+      document.getElementById('form-section').style.display = 'none';
+      const ty = document.getElementById('thank-you');
+      ty.style.display = 'flex';
+      document.getElementById('nota-enviada').textContent = `Sua nota: ${notaSelecionada} / 10`;
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Enviar avaliação';
+      alert('Erro ao enviar avaliação. Tente novamente.');
+    }
+  }
+</script>
+</body>
+</html>
