@@ -140,6 +140,17 @@
   .sem-comentario { color: var(--text3); font-style: italic; font-size: 13px; }
   .loading { text-align: center; padding: 48px; color: var(--text3); font-size: 14px; }
   .empty { text-align: center; padding: 48px; color: var(--text3); font-size: 14px; }
+  .btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    color: #AAC8D4;
+    transition: color 0.15s, background 0.15s;
+    line-height: 0;
+  }
+  .btn-delete:hover { color: #B91C1C; background: #FEF2F2; }
 
   /* Footer */
   footer {
@@ -155,7 +166,7 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .header { padding: 0 16px; }
     .content { padding: 20px 12px 40px; }
-    thead th:nth-child(3), td:nth-child(3) { display: none; }
+    thead th:nth-child(4), td:nth-child(4) { display: none; }
   }
   @media (max-width: 400px) {
     .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -230,16 +241,12 @@
   const SUPABASE_URL = 'https://zsaomhnehwervejkldam.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
 
+  let dados = [];
+
   function notaClass(n) {
     if (n <= 6) return 'nota-red';
     if (n <= 8) return 'nota-yellow';
     return 'nota-green';
-  }
-
-  function barClass(n) {
-    if (n <= 6) return 'bar-' + n;
-    if (n <= 8) return 'bar-' + n;
-    return 'bar-' + n;
   }
 
   function formatDate(iso) {
@@ -254,13 +261,17 @@
         `${SUPABASE_URL}/rest/v1/avaliacoes?select=*&order=created_at.desc`,
         { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
       );
-      const data = await res.json();
-      renderStats(data);
-      renderChart(data);
-      renderTable(data);
+      dados = await res.json();
+      renderTudo();
     } catch (e) {
       document.getElementById('table-wrap').innerHTML = '<div class="empty">Erro ao carregar avaliações.</div>';
     }
+  }
+
+  function renderTudo() {
+    renderStats(dados);
+    renderChart(dados);
+    renderTable(dados);
   }
 
   function renderStats(data) {
@@ -316,10 +327,18 @@
     }
 
     const rows = data.map(r => `
-      <tr>
+      <tr data-id="${r.id}">
         <td style="color:var(--text2);font-size:13px;">${formatDate(r.created_at)}</td>
+        <td style="font-size:13.5px;">${r.nome || '—'}</td>
         <td><span class="nota-pill ${notaClass(r.nota)}">${r.nota}</span></td>
         <td>${r.comentario ? r.comentario : '<span class="sem-comentario">Sem comentário</span>'}</td>
+        <td style="width:48px;text-align:center;">
+          <button class="btn-delete" title="Excluir avaliação" onclick="excluir('${r.id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
+        </td>
       </tr>
     `).join('');
 
@@ -327,14 +346,34 @@
       <table>
         <thead>
           <tr>
-            <th style="width:160px">Data</th>
-            <th style="width:80px">Nota</th>
+            <th style="width:155px">Data</th>
+            <th style="width:160px">Nome</th>
+            <th style="width:72px">Nota</th>
             <th>Comentário</th>
+            <th style="width:48px"></th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
     `;
+  }
+
+  async function excluir(id) {
+    if (!confirm('Tem certeza que deseja excluir esta avaliação?')) return;
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/avaliacoes?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
+      });
+
+      if (!res.ok) throw new Error('Erro ao excluir');
+
+      dados = dados.filter(r => r.id !== id);
+      renderTudo();
+    } catch (e) {
+      alert('Erro ao excluir avaliação. Tente novamente.');
+    }
   }
 
   carregar();
