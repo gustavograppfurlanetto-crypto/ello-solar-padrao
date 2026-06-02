@@ -152,6 +152,58 @@
   }
   .btn-delete:hover { color: #B91C1C; background: #FEF2F2; }
 
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,42,56,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 8px 40px rgba(0,67,88,0.22);
+    padding: 28px 28px 24px;
+    width: 100%;
+    max-width: 340px;
+    animation: modal-in 0.18s ease;
+  }
+  @keyframes modal-in { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-title { font-size: 15px; font-weight: 700; color: #004358; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: #3D6472; margin-bottom: 18px; }
+  .modal input[type="password"] {
+    width: 100%;
+    border: 1.5px solid #C8DDE5;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    color: #002A38;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 8px;
+  }
+  .modal input[type="password"]:focus { border-color: #004358; }
+  .modal input[type="password"].input-error { border-color: #B91C1C; }
+  .modal-error { font-size: 12px; color: #B91C1C; min-height: 18px; margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-btn-cancel {
+    flex: 1; padding: 10px; border: 1.5px solid #C8DDE5; background: #F7FBFC;
+    border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 14px;
+    font-weight: 500; color: #3D6472; cursor: pointer; transition: background 0.15s;
+  }
+  .modal-btn-cancel:hover { background: #EEF3F5; }
+  .modal-btn-confirm {
+    flex: 1; padding: 10px; border: none; background: #B91C1C;
+    border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 14px;
+    font-weight: 600; color: #fff; cursor: pointer; transition: background 0.15s;
+  }
+  .modal-btn-confirm:hover { background: #9B1616; }
+
   /* Footer */
   footer {
     text-align: center;
@@ -174,6 +226,20 @@
 </style>
 </head>
 <body>
+
+<!-- Modal de confirmação por senha -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Excluir avaliação</div>
+    <div class="modal-sub">Digite a senha para confirmar a exclusão.</div>
+    <input type="password" id="modal-senha" placeholder="Senha" autocomplete="off">
+    <div class="modal-error" id="modal-error"></div>
+    <div class="modal-actions">
+      <button class="modal-btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="modal-btn-confirm" onclick="confirmarExclusao()">Confirmar</button>
+    </div>
+  </div>
+</div>
 
 <div class="header">
   <div class="header-left">
@@ -358,23 +424,58 @@
     `;
   }
 
-  async function excluir(id) {
-    if (!confirm('Tem certeza que deseja excluir esta avaliação?')) return;
+  let idParaExcluir = null;
+
+  function excluir(id) {
+    idParaExcluir = id;
+    document.getElementById('modal-senha').value = '';
+    document.getElementById('modal-error').textContent = '';
+    document.getElementById('modal-senha').classList.remove('input-error');
+    document.getElementById('modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('modal-senha').focus(), 50);
+  }
+
+  function fecharModal() {
+    idParaExcluir = null;
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  async function confirmarExclusao() {
+    const senha = document.getElementById('modal-senha').value;
+    const errorEl = document.getElementById('modal-error');
+    const senhaInput = document.getElementById('modal-senha');
+
+    if (senha !== 'Ello123!') {
+      senhaInput.classList.add('input-error');
+      errorEl.textContent = 'Senha incorreta';
+      senhaInput.focus();
+      return;
+    }
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/avaliacoes?id=eq.${id}`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/avaliacoes?id=eq.${idParaExcluir}`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
       });
 
       if (!res.ok) throw new Error('Erro ao excluir');
 
-      dados = dados.filter(r => r.id !== id);
+      dados = dados.filter(r => r.id !== idParaExcluir);
+      fecharModal();
       renderTudo();
     } catch (e) {
-      alert('Erro ao excluir avaliação. Tente novamente.');
+      errorEl.textContent = 'Erro ao excluir. Tente novamente.';
     }
   }
+
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) fecharModal();
+  });
+
+  document.getElementById('modal-senha').addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmarExclusao();
+    if (e.key === 'Escape') fecharModal();
+  });
 
   carregar();
   setInterval(carregar, 60000);
