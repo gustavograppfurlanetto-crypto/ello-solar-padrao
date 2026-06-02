@@ -78,6 +78,9 @@
   .exec-filter-btn.active-sky { background:#58AFDA; color:#fff; font-weight:600; }
   table { width:100%; border-collapse:collapse; }
   thead th { padding:10px 16px; text-align:left; font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color:var(--text2); background:var(--surface2); border-bottom:1px solid var(--border); }
+  thead th.th-sortable { cursor:pointer; user-select:none; transition:background 0.15s,color 0.15s; }
+  thead th.th-sortable:hover { background:var(--accent-bg); color:var(--accent-text); }
+  thead th.th-sort-active { color:var(--accent) !important; background:var(--accent-bg) !important; }
   tbody tr { border-bottom:1px solid var(--border); transition:background 0.1s; cursor:pointer; }
   tbody tr:last-child { border-bottom:none; }
   tbody tr:hover { background:var(--surface2); }
@@ -525,7 +528,7 @@ const SURL='https://zsaomhnehwervejkldam.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
 const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
-let all=[],filtered=[],page=1,activeStatus='',filterExecMode='all',filterCadastroMode='all',filterDocsMode='all';
+let all=[],filtered=[],page=1,activeStatus='',filterExecMode='all',filterCadastroMode='all',filterDocsMode='all',sortNameOrder=null;
 let editingId=null;
 let executores=[],editingExecutorId=null;
 const PER=10;
@@ -615,8 +618,13 @@ function applyFilters(){
   const afterCad=filterCadastroMode==='completos'?afterExec.filter(p=>p.nome_titular&&p.nome_titular.trim()):filterCadastroMode==='incompletos'?afterExec.filter(p=>!p.nome_titular||!p.nome_titular.trim()):afterExec;
   updateDocsCounts(afterCad);
   const afterDocs=filterDocsMode==='com_docs'?afterCad.filter(p=>p.docs_recebidos===true):filterDocsMode==='sem_docs'?afterCad.filter(p=>p.docs_recebidos!==true):afterCad;
-  filtered=afterDocs;
+  filtered=sortNameOrder?[...afterDocs].sort((a,b)=>{const na=a.nome_contrato||'',nb=b.nome_contrato||'';return sortNameOrder==='asc'?na.localeCompare(nb,'pt-BR',{sensitivity:'base'}):nb.localeCompare(na,'pt-BR',{sensitivity:'base'});}):afterDocs;
   page=1;renderTable();
+}
+
+function toggleSort(){
+  sortNameOrder=sortNameOrder===null?'asc':sortNameOrder==='asc'?'desc':null;
+  applyFilters();
 }
 
 function renderTable(){
@@ -648,7 +656,9 @@ function renderTable(){
     const db=`<span onclick="toggleDocsRecebidos(event,'${p.id}')" title="${dr?'Docs recebidos — clique para desmarcar':'Clique para marcar como docs recebidos'}" style="cursor:pointer;font-size:10px;border-radius:20px;display:inline-flex;align-items:center;vertical-align:middle;margin-right:4px;transition:all 0.15s;${dr?'background:#58AFDA;color:#fff;font-weight:700;padding:3px 9px;border:none':'background:transparent;color:#C9CDD4;font-weight:500;padding:2px 6px;border:1px dashed #C9CDD4'}">${dr?'📄 ':''}Docs</span>`;
     return `<tr onclick="openDetail('${p.id}')"><td class="td-name" style="color:var(--text2)">${contratoCell}</td><td class="td-name">${nomeCell}</td><td class="td-mono">${p.cpf||'—'}</td><td class="td-mono">${p.unidade_consumidora||'—'}</td><td>${cb}${db}${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
   }).join('');
-  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do contrato</th><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const _si=sortNameOrder==='asc'?'↑':sortNameOrder==='desc'?'↓':'↕';
+  const _sc=sortNameOrder?'th-sort-active':'';
+  document.getElementById('table-container').innerHTML=`<table><thead><tr><th class="th-sortable ${_sc}" onclick="toggleSort()" title="Ordenar por nome do contrato">${_si} Nome do contrato</th><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
   const pel=document.getElementById('pagination');
   pel.style.display='flex';
