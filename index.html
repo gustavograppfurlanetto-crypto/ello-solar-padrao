@@ -261,6 +261,9 @@
               <option value="em_andamento">Em andamento</option>
               <option value="concluido">Concluído</option>
             </select>
+            <select class="filter-select" id="filter-cidade" onchange="applyFilters()">
+              <option value="">Todas as cidades</option>
+            </select>
             <div class="exec-filter-group">
               <button class="exec-filter-btn active-dark" id="btn-exec-todos" onclick="setExecFilter('all')">Todos (<span id="cnt-exec-todos">0</span>)</button>
               <button class="exec-filter-btn" id="btn-exec-empresa" onclick="setExecFilter('empresa')">Execução Empresa (<span id="cnt-exec-empresa">0</span>)</button>
@@ -329,6 +332,7 @@
         <div class="form-grid">
           <div class="form-group"><label class="required">Unidade consumidora</label><input type="text" id="f-uc" placeholder="Número da UC"></div>
           <div class="form-group full"><label>Endereço</label><input type="text" id="f-endereco" placeholder="Rua, número, bairro, cidade"></div>
+          <div class="form-group"><label>Cidade</label><input type="text" id="f-cidade" placeholder="Ex: São Paulo"></div>
           <div class="form-group full"><label>Ponto de referência</label><input type="text" id="f-referencia" placeholder="Ex: próximo ao mercado..."></div>
           <div class="form-group full"><label>Link da localização</label><input type="text" id="f-localizacao" placeholder="Cole o link do Google Maps..."></div>
         </div>
@@ -549,10 +553,19 @@ async function api(m,p,b){
 async function load(){
   try{
     all=await api('GET','/rest/v1/pedidos?select=*&order=created_at.desc');
-    applyFilters();updateStats();
+    populateCidadeFilter();applyFilters();updateStats();
   }catch(e){
     document.getElementById('table-container').innerHTML='<div class="empty-state"><p style="color:var(--danger)">Erro ao carregar pedidos.</p></div>';
   }
+}
+
+function populateCidadeFilter(){
+  const sel=document.getElementById('filter-cidade');
+  const cur=sel.value;
+  const cidades=[...new Set(all.map(p=>p.cidade).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  sel.innerHTML='<option value="">Todas as cidades</option>';
+  cidades.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  if(cur&&cidades.includes(cur))sel.value=cur;
 }
 
 function updateStats(){
@@ -608,9 +621,10 @@ function applyFilters(){
   const s=document.getElementById('search-input').value.toLowerCase();
   const t=document.getElementById('filter-tipo').value;
   const st=document.getElementById('filter-status').value||activeStatus;
+  const ci=document.getElementById('filter-cidade').value;
   const base=all.filter(p=>{
     const ms=!s||(p.nome_titular||'').toLowerCase().includes(s)||(p.unidade_consumidora||'').toLowerCase().includes(s)||(p.cpf||'').includes(s)||(p.nome_contrato||'').toLowerCase().includes(s);
-    return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st);
+    return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st)&&(!ci||p.cidade===ci);
   });
   updateExecClienteCounts(base);
   const afterExec=filterExecMode==='empresa'?base.filter(p=>p.feito_pelo_cliente!==true):filterExecMode==='cliente'?base.filter(p=>p.feito_pelo_cliente===true):base;
@@ -654,11 +668,11 @@ function renderTable(){
     const cb=`<span onclick="toggleFeitoCliente(event,'${p.id}')" title="${fpc?'Execução Cliente — clique para desmarcar':'Clique para marcar como Execução Cliente'}" style="cursor:pointer;font-size:10px;border-radius:20px;display:inline-flex;align-items:center;vertical-align:middle;margin-right:4px;transition:all 0.15s;${fpc?'background:#BEDB39;color:#2D3A00;font-weight:700;padding:3px 9px;border:none':'background:transparent;color:#C9CDD4;font-weight:500;padding:2px 6px;border:1px dashed #C9CDD4'}">${fpc?'👤 ':''}Execução Cliente</span>`;
     const dr=p.docs_recebidos;
     const db=`<span onclick="toggleDocsRecebidos(event,'${p.id}')" title="${dr?'Docs recebidos — clique para desmarcar':'Clique para marcar como docs recebidos'}" style="cursor:pointer;font-size:10px;border-radius:20px;display:inline-flex;align-items:center;vertical-align:middle;margin-right:4px;transition:all 0.15s;${dr?'background:#58AFDA;color:#fff;font-weight:700;padding:3px 9px;border:none':'background:transparent;color:#C9CDD4;font-weight:500;padding:2px 6px;border:1px dashed #C9CDD4'}">${dr?'📄 ':''}Docs</span>`;
-    return `<tr onclick="openDetail('${p.id}')"><td class="td-name" style="color:var(--text2)">${contratoCell}</td><td class="td-name">${nomeCell}</td><td class="td-mono">${p.cpf||'—'}</td><td class="td-mono">${p.unidade_consumidora||'—'}</td><td>${cb}${db}${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
+    return `<tr onclick="openDetail('${p.id}')"><td class="td-name" style="color:var(--text2)">${contratoCell}</td><td class="td-name">${nomeCell}</td><td class="td-mono">${p.cpf||'—'}</td><td class="td-mono">${p.unidade_consumidora||'—'}</td><td style="color:var(--text2)">${p.cidade||'—'}</td><td>${cb}${db}${tb}${di}</td><td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td><td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td><td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td><td class="td-mono" style="color:var(--text3)">${d}</td></tr>`;
   }).join('');
   const _si=sortNameOrder==='asc'?'↑':sortNameOrder==='desc'?'↓':'↕';
   const _sc=sortNameOrder?'th-sort-active':'';
-  document.getElementById('table-container').innerHTML=`<table><thead><tr><th class="th-sortable ${_sc}" onclick="toggleSort()" title="Ordenar por nome do contrato">${_si} Nome do contrato</th><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('table-container').innerHTML=`<table><thead><tr><th class="th-sortable ${_sc}" onclick="toggleSort()" title="Ordenar por nome do contrato">${_si} Nome do contrato</th><th>Nome do titular</th><th>CPF</th><th>Unidade consumidora</th><th>Cidade</th><th>Tipo</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
   const pel=document.getElementById('pagination');
   pel.style.display='flex';
@@ -752,6 +766,7 @@ async function openDetail(id){
         <div class="detail-item"><div class="detail-label">Nome da mãe</div><div class="detail-value">${p.nome_mae||'—'}</div></div>
         <div class="detail-item"><div class="detail-label">Nome do pai</div><div class="detail-value">${p.nome_pai||'—'}</div></div>
         <div class="detail-full"><div class="detail-label">Unidade consumidora</div><div class="detail-value">${p.unidade_consumidora}</div></div>
+        ${p.cidade?`<div class="detail-full"><div class="detail-label">Cidade</div><div class="detail-value">${p.cidade}</div></div>`:''}
         <div class="detail-full"><div class="detail-label">Endereço</div><div class="detail-value">${p.endereco||'—'}${p.ponto_referencia&&p.endereco?' — '+p.ponto_referencia:''}</div></div>
         ${p.link_localizacao?`<div class="detail-full"><div class="detail-label">Link da localização</div><div class="detail-value"><a href="${p.link_localizacao}" target="_blank" style="color:var(--accent2);word-break:break-all">${p.link_localizacao}</a></div></div>`:''}
         ${p.observacoes?`<div class="detail-full"><div class="detail-label">Observações</div><div class="detail-value">${p.observacoes}</div></div>`:''}
@@ -792,6 +807,7 @@ function openEditModal(){
   document.getElementById('f-email').value=p.email||'';
   document.getElementById('f-uc').value=p.unidade_consumidora||'';
   document.getElementById('f-endereco').value=p.endereco||'';
+  document.getElementById('f-cidade').value=p.cidade||'';
   document.getElementById('f-referencia').value=p.ponto_referencia||'';
   document.getElementById('f-localizacao').value=p.link_localizacao||'';
   document.getElementById('f-obs').value=p.observacoes||'';
@@ -1009,7 +1025,7 @@ async function savePedido(){
     email:document.getElementById('f-email').value.trim()||null,
     nome_mae:document.getElementById('f-mae').value.trim()||null,
     nome_pai:document.getElementById('f-pai').value.trim()||null,
-    endereco:end||null,ponto_referencia:document.getElementById('f-referencia').value.trim()||null,
+    endereco:end||null,cidade:document.getElementById('f-cidade').value.trim()||null,ponto_referencia:document.getElementById('f-referencia').value.trim()||null,
     link_localizacao:document.getElementById('f-localizacao').value.trim()||null,
     nome_contrato:document.getElementById('f-contrato').value.trim()||null,
     tipo_solicitacao:tipo,tipo_conexao:tipo==='alteracao_conexao'?conexao:null,
@@ -1069,7 +1085,7 @@ function clearForm(){
   editingId=null;
   document.getElementById('modal-new-title').textContent='Novo pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar pedido';
-  ['f-nome','f-contrato','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-referencia','f-localizacao','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig','f-valor'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-nome','f-contrato','f-cpf','f-rg','f-nascimento','f-uc','f-telefone','f-email','f-mae','f-pai','f-endereco','f-cidade','f-referencia','f-localizacao','f-obs','f-uc-deslig','f-titular-deslig','f-cpf-deslig','f-nasc-deslig','f-mae-deslig','f-pai-deslig','f-tel-deslig','f-email-deslig','f-end-deslig','f-ref-deslig','f-valor'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-executor').value='';
   document.getElementById('f-tipo').value='';
   document.getElementById('f-conexao').value='';
