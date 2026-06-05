@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ello Solar — Troca de Padrão</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -241,6 +242,10 @@
           <div class="table-header-left">
             <span class="table-title">Pedidos</span>
             <span class="count-badge" id="table-count">0</span>
+            <button class="btn" onclick="exportarExcel()" style="background:#1F8A70;color:white;border-color:#1F8A70;" title="Exportar pedidos filtrados para Excel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="12" y1="13" x2="12" y2="17"/></svg>
+              Exportar
+            </button>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <div class="search-input">
@@ -1630,6 +1635,30 @@ function rebuildCell(td, field, p) {
   } else {
     td.textContent = p[field] != null ? Number(p[field]).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : '—';
   }
+}
+
+function exportarExcel(){
+  if(!filtered||!filtered.length){showToast('Nenhum pedido para exportar',true);return;}
+  const cols=['Nome do Contrato','Nome do Titular','CPF','RG','Data de Nascimento','Telefone','E-mail','Unidade Consumidora','Cidade','Endereço','Tipo de Solicitação','Tipo de Conexão','Status','Executor','Custo','Negociado','Execução Cliente','Docs Recebidos','Data de Cadastro'];
+  const rows=filtered.map(p=>{
+    const dn=p.data_nascimento?new Date(p.data_nascimento+'T00:00:00').toLocaleDateString('pt-BR'):'';
+    const dc=p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'';
+    const exec=executores.find(e=>e.id===p.executor_id)?.nome||'';
+    return[p.nome_contrato||'',p.nome_titular||'',p.cpf||'',p.rg||'',dn,p.telefone||'',p.email||'',p.unidade_consumidora||'',p.cidade||'',p.endereco||'',TL[p.tipo_solicitacao]||'',CL[p.tipo_conexao]||'',SL[p.status]||'',exec,p.custo!=null?Number(p.custo):'',p.negociado!=null?Number(p.negociado):'',p.feito_pelo_cliente?'Sim':'Não',p.docs_recebidos?'Sim':'Não',dc];
+  });
+  const ws=XLSX.utils.aoa_to_sheet([cols,...rows]);
+  const hStyle={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{patternType:'solid',fgColor:{rgb:'004358'}},alignment:{horizontal:'center',vertical:'center'}};
+  cols.forEach((_,i)=>{const r=XLSX.utils.encode_cell({r:0,c:i});if(ws[r])ws[r].s=hStyle;});
+  const maxW=cols.map((h,ci)=>Math.max(h.length,...rows.map(r=>String(r[ci]||'').length))+2);
+  ws['!cols']=maxW.map(w=>({wch:Math.min(w,40)}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Pedidos');
+  const now=new Date();
+  const dd=String(now.getDate()).padStart(2,'0');
+  const mm=String(now.getMonth()+1).padStart(2,'0');
+  const aaaa=now.getFullYear();
+  XLSX.writeFile(wb,`ello-solar-pedidos-${dd}-${mm}-${aaaa}.xlsx`,{cellStyles:true});
+  showToast(`${filtered.length} pedido(s) exportado(s)!`);
 }
 
 loadExecutores();load();
