@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ello Solar — Onboard de Clientes</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #EEF3F5; --surface: #FFFFFF; --surface2: #E4EEF2;
+    --border: #C8DDE5; --border2: #AAC8D4;
+    --text: #002A38; --text2: #3D6472; --text3: #7A9DAA;
+    --accent: #004358; --accent-bg: #D6E8EF; --accent-text: #003047;
+    --accent2: #FD7400; --accent2-bg: #FFF0E0; --accent2-text: #C25A00;
+    --teal: #1F8A70; --teal-bg: #D5F0E9; --teal-text: #145C4A;
+    --success: #1F8A70; --success-bg: #D5F0E9;
+    --warning: #C25A00; --warning-bg: #FFF0E0;
+    --danger: #B91C1C; --danger-bg: #FEF2F2;
+    --yellow: #B7950B; --yellow-bg: #FEF6D8;
+    --radius: 10px; --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,67,88,0.08),0 1px 2px rgba(0,67,88,0.05);
+    --shadow-md: 0 4px 16px rgba(0,67,88,0.12);
+  }
+  body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; line-height:1.5; }
+  .header { background:var(--accent); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .header-left { display:flex; align-items:center; gap:16px; }
+  .header-left img { height:38px; object-fit:contain; filter:brightness(0) invert(1); }
+  .header-title { font-size:16px; font-weight:600; color:#fff; }
+  .header-right { display:flex; align-items:center; gap:14px; }
+  .back-link { color:var(--sidebar-text,#B8D8E4); font-size:13px; text-decoration:none; transition:color 0.15s; }
+  .back-link:hover { color:#fff; }
+  .content { padding:28px; max-width:1200px; margin:0 auto; }
+  .toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; gap:12px; flex-wrap:wrap; }
+  .toolbar-title { font-size:18px; font-weight:600; color:var(--text); }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:var(--radius-sm); font-size:13px; font-weight:500; cursor:pointer; border:1px solid transparent; transition:all 0.15s; font-family:'Outfit',sans-serif; line-height:1; }
+  .btn-primary { background:var(--accent2); color:white; border-color:var(--accent2); }
+  .btn-primary:hover { background:#D96300; }
+  .btn-ghost { background:none; color:var(--text2); border-color:var(--border2); }
+  .btn-ghost:hover { background:var(--surface2); color:var(--text); }
+  .btn-sm { padding:5px 10px; font-size:12px; }
+  .btn svg { width:15px; height:15px; }
+  .table-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  thead th { padding:10px 16px; text-align:left; font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color:var(--text2); background:var(--surface2); border-bottom:1px solid var(--border); }
+  tbody tr { border-bottom:1px solid var(--border); transition:background 0.1s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:hover { background:var(--surface2); }
+  tbody td { padding:13px 16px; font-size:13px; color:var(--text); vertical-align:middle; }
+  .td-name { font-weight:500; }
+  .td-mono { font-family:'DM Mono',monospace; font-size:12px; color:var(--text2); }
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:500; white-space:nowrap; }
+  .badge-dot { width:5px; height:5px; border-radius:50%; }
+  .badge-aguardando { background:var(--yellow-bg); color:var(--yellow); }
+  .badge-confirmado { background:var(--success-bg); color:var(--success); }
+  .badge-pendente { background:var(--accent2-bg); color:var(--accent2-text); }
+  .row-actions { display:flex; gap:6px; }
+  .icon-btn { width:30px; height:30px; border:1px solid var(--border2); background:var(--surface); border-radius:var(--radius-sm); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text2); transition:all 0.15s; }
+  .icon-btn:hover { background:var(--surface2); color:var(--text); }
+  .icon-btn.danger:hover { background:var(--danger-bg); color:var(--danger); border-color:#FCA5A5; }
+  .icon-btn svg { width:14px; height:14px; }
+  .empty-state { padding:60px 20px; text-align:center; color:var(--text3); }
+  .empty-state svg { margin:0 auto 12px; display:block; color:var(--border2); }
+  .loading { display:flex; align-items:center; justify-content:center; padding:40px; color:var(--text3); font-size:13px; gap:8px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinner { width:16px; height:16px; border:2px solid var(--border2); border-top-color:var(--text2); border-radius:50%; animation:spin 0.7s linear infinite; }
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:100; align-items:center; justify-content:center; padding:24px; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border-radius:14px; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-md); }
+  .modal-header { padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--surface); z-index:1; }
+  .modal-title { font-size:15px; font-weight:600; color:var(--text); }
+  .modal-close { width:28px; height:28px; border:none; background:var(--surface2); border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text2); transition:background 0.15s; }
+  .modal-close:hover { background:var(--border); }
+  .modal-close svg { width:14px; height:14px; }
+  .modal-body { padding:20px 24px; }
+  .modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; position:sticky; bottom:0; background:var(--surface); }
+  .form-section-title { font-size:11px; font-weight:600; letter-spacing:0.6px; text-transform:uppercase; color:var(--text3); margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-grid .full { grid-column:1/-1; }
+  .form-group { display:flex; flex-direction:column; gap:5px; }
+  label { font-size:12px; font-weight:500; color:var(--text2); }
+  input[type="text"],input[type="email"],input[type="file"],select,textarea { border:1px solid var(--border2); border-radius:var(--radius-sm); padding:8px 10px; font-family:'Outfit',sans-serif; font-size:13px; color:var(--text); background:var(--surface); outline:none; transition:border-color 0.15s; width:100%; }
+  input:focus,select:focus,textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,67,88,0.1); }
+  .upload-box { border:1.5px dashed var(--border2); border-radius:var(--radius); padding:24px; text-align:center; background:var(--surface2); }
+  .upload-box p { font-size:13px; color:var(--text2); margin-bottom:12px; }
+  .extract-status { display:none; align-items:center; gap:8px; font-size:13px; color:var(--text2); margin-top:14px; justify-content:center; }
+  .extract-status.show { display:flex; }
+  .extract-error { display:none; background:var(--danger-bg); color:var(--danger); border-radius:var(--radius-sm); padding:10px 14px; font-size:12.5px; margin-top:14px; }
+  .extract-error.show { display:block; }
+  .link-box { background:var(--accent-bg); border:1px solid var(--border2); border-radius:var(--radius); padding:16px; margin-top:18px; }
+  .link-box-label { font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color:var(--accent-text); margin-bottom:8px; }
+  .link-row { display:flex; gap:8px; align-items:center; }
+  .link-row input { font-family:'DM Mono',monospace; font-size:12px; background:#fff; }
+  .link-actions { display:flex; gap:8px; margin-top:12px; }
+  .detail-section { margin-bottom:18px; }
+  .detail-section-title { font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; color:var(--text3); margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .detail-grid { display:grid; grid-template-columns:1fr 1fr; }
+  .detail-item { padding:9px 0; border-bottom:1px solid var(--border); }
+  .detail-item:nth-child(odd) { padding-right:16px; }
+  .detail-item:nth-child(even) { padding-left:16px; border-left:1px solid var(--border); }
+  .detail-full { padding:9px 0; border-bottom:1px solid var(--border); grid-column:1/-1; }
+  .detail-label { font-size:11px; color:var(--text3); font-weight:500; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.4px; }
+  .detail-value { font-size:13.5px; color:var(--text); }
+  .doc-links { display:flex; gap:10px; flex-wrap:wrap; }
+  .doc-link { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:var(--radius-sm); border:1px solid var(--border2); background:var(--surface2); color:var(--accent); font-size:12.5px; font-weight:500; text-decoration:none; transition:all 0.15s; }
+  .doc-link:hover { background:var(--accent-bg); }
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--text); color:white; padding:10px 16px; border-radius:var(--radius-sm); font-size:13px; font-weight:500; z-index:999; box-shadow:var(--shadow-md); transform:translateY(80px); opacity:0; transition:all 0.25s; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.error { background:var(--danger); }
+  .count-badge { background:var(--surface2); border:1px solid var(--border); color:var(--text2); font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; font-family:'DM Mono',monospace; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <img src="https://zsaomhnehwervejkldam.supabase.co/storage/v1/object/public/assets/logo_ello.png" alt="Ello Solar" onerror="this.outerHTML='<div style=\'font-size:16px;font-weight:700;color:#fff\'>ELLO SOLAR</div>'">
+    <span class="header-title">Onboard de Clientes</span>
+  </div>
+  <div class="header-right">
+    <a class="back-link" href="index.html">← Voltar ao sistema</a>
+  </div>
+</div>
+
+<div class="content">
+  <div class="toolbar">
+    <div class="toolbar-title">Onboards</div>
+    <button class="btn btn-primary" onclick="openNewModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Novo onboard
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div id="table-container"><div class="loading"><div class="spinner"></div> Carregando onboards...</div></div>
+  </div>
+</div>
+
+<!-- MODAL NOVO ONBOARD -->
+<div class="modal-overlay" id="modal-new">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Novo onboard</span>
+      <button class="modal-close" onclick="closeModal('modal-new')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+
+      <div id="step-upload">
+        <div class="upload-box">
+          <p>Envie o PDF de "Negócio Fechado" para extrair os dados do cliente automaticamente com IA.</p>
+          <input type="file" id="f-pdf" accept="application/pdf">
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary" id="btn-extrair" onclick="extrairComIA()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>
+              Extrair dados com IA
+            </button>
+          </div>
+          <div class="extract-status" id="extract-status"><div class="spinner"></div> <span>Lendo PDF e extraindo dados com IA...</span></div>
+          <div class="extract-error" id="extract-error"></div>
+        </div>
+      </div>
+
+      <div id="step-review" style="display:none;">
+        <div class="form-section-title">Vendedor</div>
+        <div class="form-grid" style="margin-bottom:18px;">
+          <div class="form-group full"><label>Nome do vendedor</label><input type="text" id="f-vendedor" placeholder="Nome do vendedor responsável"></div>
+        </div>
+
+        <div class="form-section-title">Dados pessoais</div>
+        <div class="form-grid" style="margin-bottom:18px;">
+          <div class="form-group full"><label>Nome completo</label><input type="text" id="f-nome_cliente"></div>
+          <div class="form-group"><label>CPF</label><input type="text" id="f-cpf"></div>
+          <div class="form-group"><label>RG</label><input type="text" id="f-rg"></div>
+          <div class="form-group"><label>Profissão</label><input type="text" id="f-profissao"></div>
+          <div class="form-group"><label>Estado civil</label><input type="text" id="f-estado_civil"></div>
+          <div class="form-group"><label>Data de nascimento</label><input type="text" id="f-data_nascimento"></div>
+          <div class="form-group"><label>E-mail</label><input type="text" id="f-email"></div>
+          <div class="form-group"><label>Telefone</label><input type="text" id="f-telefone"></div>
+        </div>
+
+        <div class="form-section-title">Dados do projeto</div>
+        <div class="form-grid" style="margin-bottom:18px;">
+          <div class="form-group"><label>UC geradora</label><input type="text" id="f-uc_geradora"></div>
+          <div class="form-group"><label>CEP</label><input type="text" id="f-cep"></div>
+          <div class="form-group full"><label>Endereço</label><input type="text" id="f-endereco"></div>
+          <div class="form-group"><label>Coordenadas</label><input type="text" id="f-coordenadas"></div>
+          <div class="form-group"><label>UCs remotas</label><input type="text" id="f-uc_remotas"></div>
+          <div class="form-group"><label>Troca de titularidade</label><input type="text" id="f-troca_titularidade"></div>
+          <div class="form-group"><label>Troca de padrão</label><input type="text" id="f-troca_padrao"></div>
+          <div class="form-group"><label>Sistema (kWp)</label><input type="text" id="f-sistema_kwp"></div>
+          <div class="form-group"><label>Quantidade de módulos</label><input type="text" id="f-qtd_modulos"></div>
+          <div class="form-group"><label>Tipo de inversor</label><input type="text" id="f-tipo_inversor"></div>
+          <div class="form-group"><label>Quantidade de inversores</label><input type="text" id="f-qtd_inversores"></div>
+          <div class="form-group"><label>Valor do projeto</label><input type="text" id="f-valor_projeto"></div>
+          <div class="form-group"><label>Forma de pagamento</label><input type="text" id="f-forma_pagamento"></div>
+          <div class="form-group"><label>Prazo de entrega</label><input type="text" id="f-prazo_entrega"></div>
+          <div class="form-group"><label>Padrão</label><input type="text" id="f-padrao"></div>
+          <div class="form-group"><label>Valor negociado do padrão</label><input type="text" id="f-valor_negociado_padrao"></div>
+          <div class="form-group"><label>Padrão — entrada</label><input type="text" id="f-padrao_entrada"></div>
+          <div class="form-group"><label>Tipo de alimentação</label><input type="text" id="f-tipo_alimentacao"></div>
+          <div class="form-group"><label>UC do padrão novo</label><input type="text" id="f-uc_padrao_novo"></div>
+          <div class="form-group"><label>UCs desligadas</label><input type="text" id="f-ucs_desligadas"></div>
+          <div class="form-group"><label>Número da proposta</label><input type="text" id="f-numero_proposta"></div>
+        </div>
+
+        <div class="link-box" id="link-box" style="display:none;">
+          <div class="link-box-label">Link do cliente</div>
+          <div class="link-row">
+            <input type="text" id="link-output" readonly>
+            <button class="btn btn-ghost btn-sm" onclick="copiarLink()">Copiar</button>
+          </div>
+          <div class="link-actions">
+            <button class="btn btn-sm" style="background:#25D366;color:#fff;border-color:#25D366;" onclick="compartilharWhatsapp()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L4 22l4.74-1.24a8.93 8.93 0 0 0 4.31 1.1A8.94 8.94 0 0 0 22 12.93a8.84 8.84 0 0 0-2.6-6.6zm-5.55 13.7a7.4 7.4 0 0 1-3.78-1.04l-.27-.16-2.82.74.75-2.74-.18-.28a7.43 7.43 0 1 1 13.81-3.91 7.43 7.43 0 0 1-7.51 7.39zm4.08-5.56c-.22-.11-1.32-.65-1.52-.73-.2-.07-.35-.11-.5.11-.15.22-.57.73-.7.88-.13.15-.26.16-.48.05-.22-.11-.93-.34-1.78-1.1a6.7 6.7 0 0 1-1.23-1.53c-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.06-.11-.5-1.21-.69-1.66-.18-.43-.37-.37-.5-.38-.13-.01-.28-.01-.43-.01a.83.83 0 0 0-.6.28c-.21.22-.79.77-.79 1.88s.81 2.18.92 2.33c.11.15 1.6 2.45 3.89 3.43.54.24.97.38 1.3.48.55.17 1.04.15 1.44.09.44-.07 1.32-.54 1.5-1.06.19-.52.19-.97.13-1.06-.06-.1-.2-.15-.42-.26z"/></svg>
+              Compartilhar no WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer" id="footer-review" style="display:none;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new')">Fechar</button>
+      <button class="btn btn-primary" id="btn-salvar-link" onclick="salvarEGerarLink()">Salvar e gerar link</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="detail-title">Detalhe do onboard</span>
+      <button class="modal-close" onclick="closeModal('modal-detail')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SURL='https://zsaomhnehwervejkldam.supabase.co';
+const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
+const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'};
+
+const CAMPOS=['vendedor','nome_cliente','cpf','rg','profissao','estado_civil','data_nascimento','email','telefone','uc_geradora','endereco','cep','coordenadas','uc_remotas','troca_titularidade','troca_padrao','sistema_kwp','qtd_modulos','tipo_inversor','qtd_inversores','valor_projeto','forma_pagamento','prazo_entrega','padrao','valor_negociado_padrao','padrao_entrada','tipo_alimentacao','uc_padrao_novo','ucs_desligadas','numero_proposta'];
+const SL={aguardando:'Aguardando',confirmado:'Confirmado',pendente:'Pendente'};
+const SC={aguardando:'#B7950B',confirmado:'#1F8A70',pendente:'#C25A00'};
+
+let all=[],currentOnboard=null,generatedToken=null;
+
+async function api(m,p,b){
+  const o={method:m,headers:H};
+  if(b)o.body=JSON.stringify(b);
+  const r=await fetch(SURL+p,o);
+  if(!r.ok)throw new Error(await r.text());
+  if(r.status===204)return null;
+  return r.json();
+}
+
+async function load(){
+  try{
+    all=await api('GET','/rest/v1/onboards?select=*&order=created_at.desc');
+    renderTable();
+  }catch(e){
+    document.getElementById('table-container').innerHTML='<div class="empty-state"><p style="color:var(--danger)">Erro ao carregar onboards.</p></div>';
+  }
+}
+
+function renderTable(){
+  if(!all.length){
+    document.getElementById('table-container').innerHTML='<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><p>Nenhum onboard cadastrado ainda</p></div>';
+    return;
+  }
+  const rows=all.map(o=>{
+    const st=o.status||'aguardando';
+    const sb=`<span class="badge badge-${st}"><span class="badge-dot" style="background:${SC[st]}"></span>${SL[st]||st}</span>`;
+    const d=new Date(o.created_at).toLocaleDateString('pt-BR');
+    const link=linkDoOnboard(o.token);
+    return `<tr>
+      <td class="td-name">${o.nome_cliente||'—'}</td>
+      <td class="td-mono">${o.numero_proposta||'—'}</td>
+      <td>${o.vendedor||'—'}</td>
+      <td>${sb}</td>
+      <td class="td-mono" style="color:var(--text3)">${d}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" title="Ver detalhes" onclick="openDetail('${o.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="icon-btn" title="Copiar link" onclick="copiarLinkTabela('${link}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+          <button class="icon-btn danger" title="Excluir" onclick="excluirOnboard('${o.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do cliente</th><th>Proposta</th><th>Vendedor</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function linkDoOnboard(token){
+  return window.location.origin+'/ello-solar-padrao/onboard-cliente.html?token='+token;
+}
+
+function copiarLinkTabela(link){
+  navigator.clipboard.writeText(link).then(()=>showToast('Link copiado!'));
+}
+
+async function excluirOnboard(id){
+  if(!confirm('Tem certeza que deseja excluir este onboard? Esta ação não pode ser desfeita.'))return;
+  try{
+    await api('DELETE','/rest/v1/onboards?id=eq.'+id);
+    showToast('Onboard excluído!');
+    await load();
+  }catch(e){showToast('Erro ao excluir',true);}
+}
+
+function openNewModal(){
+  resetModalNovo();
+  document.getElementById('modal-new').classList.add('open');
+}
+
+function resetModalNovo(){
+  generatedToken=null;
+  document.getElementById('f-pdf').value='';
+  document.getElementById('step-upload').style.display='block';
+  document.getElementById('step-review').style.display='none';
+  document.getElementById('footer-review').style.display='none';
+  document.getElementById('extract-status').classList.remove('show');
+  document.getElementById('extract-error').classList.remove('show');
+  document.getElementById('link-box').style.display='none';
+  document.getElementById('btn-extrair').disabled=false;
+  CAMPOS.forEach(c=>{const el=document.getElementById('f-'+c);if(el)el.value='';});
+}
+
+function getApiKey(){
+  let key=localStorage.getItem('claude_api_key');
+  if(!key){
+    key=prompt('Cole sua chave da API da Anthropic (sk-ant-...) para usar a extração com IA.\nEla será salva apenas no seu navegador.');
+    if(key)localStorage.setItem('claude_api_key',key.trim());
+  }
+  return key?key.trim():null;
+}
+
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result.split(',')[1]);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function extrairComIA(){
+  const file=document.getElementById('f-pdf').files[0];
+  const errEl=document.getElementById('extract-error');
+  const statusEl=document.getElementById('extract-status');
+  errEl.classList.remove('show');
+  if(!file){showToast('Selecione um arquivo PDF',true);return;}
+  const apiKey=getApiKey();
+  if(!apiKey){showToast('Chave da API não informada',true);return;}
+
+  document.getElementById('btn-extrair').disabled=true;
+  statusEl.classList.add('show');
+  try{
+    const base64=await fileToBase64(file);
+    const prompt='Extraia os seguintes dados do documento PDF de negócio fechado e retorne APENAS um JSON válido sem markdown, sem explicações, sem blocos de código, apenas o JSON puro com as chaves: vendedor, nome_cliente, cpf, rg, profissao, estado_civil, data_nascimento, email, telefone, uc_geradora, endereco, cep, coordenadas, uc_remotas, troca_titularidade, troca_padrao, sistema_kwp, qtd_modulos, tipo_inversor, qtd_inversores, valor_projeto, forma_pagamento, prazo_entrega, padrao, valor_negociado_padrao, padrao_entrada, tipo_alimentacao, uc_padrao_novo, ucs_desligadas, numero_proposta. Se algum campo não encontrado retornar string vazia.';
+
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'content-type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1500,
+        messages:[{role:'user',content:[
+          {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
+    if(!res.ok){
+      const t=await res.text();
+      throw new Error('Erro na API da IA: '+t.substring(0,200));
+    }
+    const data=await res.json();
+    let raw=(data.content||[]).map(c=>c.text||'').join('').trim();
+    raw=raw.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+    let extraido;
+    try{ extraido=JSON.parse(raw); }
+    catch(e){ throw new Error('A IA não retornou um JSON válido.'); }
+
+    CAMPOS.forEach(c=>{
+      const el=document.getElementById('f-'+c);
+      if(el)el.value=extraido[c]||'';
+    });
+
+    document.getElementById('step-upload').style.display='none';
+    document.getElementById('step-review').style.display='block';
+    document.getElementById('footer-review').style.display='flex';
+    showToast('Dados extraídos! Revise e edite se necessário.');
+  }catch(e){
+    errEl.textContent=e.message||'Erro ao extrair dados do PDF.';
+    errEl.classList.add('show');
+  }finally{
+    statusEl.classList.remove('show');
+    document.getElementById('btn-extrair').disabled=false;
+  }
+}
+
+async function salvarEGerarLink(){
+  const nome=document.getElementById('f-nome_cliente').value.trim();
+  if(!nome){showToast('Informe ao menos o nome do cliente',true);return;}
+  const body={status:'aguardando'};
+  CAMPOS.forEach(c=>{ body[c]=document.getElementById('f-'+c).value.trim()||null; });
+
+  const btn=document.getElementById('btn-salvar-link');
+  btn.disabled=true;
+  try{
+    const [created]=await api('POST','/rest/v1/onboards',body);
+    generatedToken=created.token;
+    const link=linkDoOnboard(generatedToken);
+    document.getElementById('link-output').value=link;
+    document.getElementById('link-box').style.display='block';
+    showToast('Onboard salvo! Link gerado com sucesso.');
+    btn.textContent='Salvo';
+    await load();
+  }catch(e){
+    showToast('Erro ao salvar onboard',true);
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+function copiarLink(){
+  const input=document.getElementById('link-output');
+  navigator.clipboard.writeText(input.value).then(()=>showToast('Link copiado!'));
+}
+
+function compartilharWhatsapp(){
+  const link=document.getElementById('link-output').value;
+  if(!link)return;
+  const msg='Olá! Segue o link para confirmar seus dados do projeto solar: '+link;
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+const LABELS={
+  vendedor:'Vendedor',nome_cliente:'Nome completo',cpf:'CPF',rg:'RG',profissao:'Profissão',estado_civil:'Estado civil',data_nascimento:'Data de nascimento',email:'E-mail',telefone:'Telefone',
+  uc_geradora:'UC geradora',endereco:'Endereço',cep:'CEP',coordenadas:'Coordenadas',uc_remotas:'UCs remotas',troca_titularidade:'Troca de titularidade',troca_padrao:'Troca de padrão',
+  sistema_kwp:'Sistema (kWp)',qtd_modulos:'Qtd. módulos',tipo_inversor:'Tipo de inversor',qtd_inversores:'Qtd. inversores',valor_projeto:'Valor do projeto',forma_pagamento:'Forma de pagamento',
+  prazo_entrega:'Prazo de entrega',padrao:'Padrão',valor_negociado_padrao:'Valor negociado do padrão',padrao_entrada:'Padrão — entrada',tipo_alimentacao:'Tipo de alimentação',
+  uc_padrao_novo:'UC do padrão novo',ucs_desligadas:'UCs desligadas',numero_proposta:'Número da proposta',observacoes_cliente:'Observações do cliente'
+};
+
+function detailItem(o,key){
+  return `<div class="detail-item"><div class="detail-label">${LABELS[key]||key}</div><div class="detail-value">${o[key]||'—'}</div></div>`;
+}
+
+function openDetail(id){
+  const o=all.find(x=>x.id===id);
+  if(!o)return;
+  currentOnboard=o;
+  document.getElementById('detail-title').textContent=o.nome_cliente||'Onboard';
+  const st=o.status||'aguardando';
+  const d=new Date(o.created_at).toLocaleDateString('pt-BR');
+  const link=linkDoOnboard(o.token);
+
+  const docs=[
+    {key:'foto_rg_url',label:'Foto do RG'},
+    {key:'foto_cpf_url',label:'Foto do CPF'},
+    {key:'foto_comprovante_url',label:'Comprovante de residência'}
+  ].filter(d=>o[d.key]);
+
+  const docsHtml=docs.length
+    ? `<div class="doc-links">${docs.map(d=>`<a class="doc-link" href="${o[d.key]}" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        ${d.label}
+      </a>`).join('')}</div>`
+    : `<p style="font-size:13px;color:var(--text3)">O cliente ainda não enviou os documentos.</p>`;
+
+  document.getElementById('detail-body').innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <span class="badge badge-${st}" style="font-size:12.5px;padding:4px 10px"><span class="badge-dot" style="background:${SC[st]}"></span>${SL[st]||st}</span>
+      <span style="margin-left:auto;font-size:12px;color:var(--text3)">Criado em ${d}</span>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Link do cliente</div>
+      <div class="link-row">
+        <input type="text" readonly value="${link}" style="font-family:'DM Mono',monospace;font-size:12px;">
+        <button class="btn btn-ghost btn-sm" onclick="copiarLinkTabela('${link}')">Copiar</button>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Dados pessoais</div>
+      <div class="detail-grid">
+        ${['nome_cliente','cpf','rg','profissao','estado_civil','data_nascimento','email','telefone','vendedor'].map(k=>detailItem(o,k)).join('')}
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Dados do projeto</div>
+      <div class="detail-grid">
+        ${['uc_geradora','endereco','cep','coordenadas','uc_remotas','troca_titularidade','troca_padrao','sistema_kwp','qtd_modulos','tipo_inversor','qtd_inversores','valor_projeto','forma_pagamento','prazo_entrega','padrao','valor_negociado_padrao','padrao_entrada','tipo_alimentacao','uc_padrao_novo','ucs_desligadas','numero_proposta'].map(k=>detailItem(o,k)).join('')}
+      </div>
+    </div>
+    ${o.observacoes_cliente?`<div class="detail-section"><div class="detail-section-title">Observações do cliente</div><div class="detail-value">${o.observacoes_cliente}</div></div>`:''}
+    <div class="detail-section">
+      <div class="detail-section-title">Documentos enviados pelo cliente</div>
+      ${docsHtml}
+    </div>
+  `;
+  document.getElementById('modal-detail').classList.add('open');
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function showToast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(err?' error':'')+' show';setTimeout(()=>t.classList.remove('show'),2800);}
+
+load();
+</script>
+</body>
+</html>

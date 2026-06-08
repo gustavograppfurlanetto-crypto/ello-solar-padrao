@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confirme seus dados — Ello Solar</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: linear-gradient(135deg, #EEF3F5 0%, #D6E8EF 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    color: #002A38;
+  }
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(0,67,88,0.14);
+    padding: 36px 32px;
+    max-width: 640px;
+    width: 100%;
+  }
+  .logo-wrap { margin-bottom: 22px; display: flex; justify-content: center; align-items: center; }
+  .divider { height: 3px; background: linear-gradient(90deg, #004358, #FD7400); border-radius: 2px; margin: 0 auto 24px; width: 60px; }
+  h1 { font-size: 21px; font-weight: 700; color: #004358; margin-bottom: 6px; line-height: 1.3; text-align: center; }
+  .subtitle { font-size: 13.5px; color: #3D6472; margin-bottom: 28px; text-align: center; }
+
+  .progress { display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:32px; }
+  .step-pill { display:flex; align-items:center; gap:8px; }
+  .step-num { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; background:#E4EEF2; color:#7A9DAA; border:2px solid #C8DDE5; transition:all 0.2s; }
+  .step-label { font-size:11.5px; color:#7A9DAA; font-weight:500; display:none; }
+  @media (min-width:560px){ .step-label{ display:inline; } }
+  .step-pill.active .step-num { background:#FD7400; border-color:#FD7400; color:#fff; }
+  .step-pill.active .step-label { color:#004358; font-weight:600; }
+  .step-pill.done .step-num { background:#1F8A70; border-color:#1F8A70; color:#fff; }
+  .step-line { width:28px; height:2px; background:#C8DDE5; }
+  .step-line.done { background:#1F8A70; }
+
+  .step-section { display:none; }
+  .step-section.active { display:block; }
+
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:8px; }
+  .form-grid .full { grid-column:1/-1; }
+  .form-group { display:flex; flex-direction:column; gap:6px; text-align:left; }
+  .form-group label { font-size:12px; font-weight:600; color:#004358; }
+  .form-group input, .form-group textarea {
+    border: 1.5px solid #C8DDE5; border-radius:10px; padding:11px 13px; font-family:'Outfit',sans-serif;
+    font-size:13.5px; color:#002A38; outline:none; transition:border-color 0.15s; background:#F7FBFC; width:100%;
+  }
+  .form-group input:focus, .form-group textarea:focus { border-color:#004358; background:#fff; }
+  .form-group textarea { resize:vertical; min-height:80px; }
+
+  .info-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+  .info-card { background:#F7FBFC; border:1px solid #DCE9EE; border-radius:12px; padding:13px 15px; text-align:left; }
+  .info-card.full { grid-column:1/-1; }
+  .info-label { font-size:10.5px; font-weight:600; letter-spacing:0.4px; text-transform:uppercase; color:#7A9DAA; margin-bottom:4px; }
+  .info-value { font-size:13.5px; color:#002A38; font-weight:500; }
+
+  .upload-group { text-align:left; margin-bottom:20px; }
+  .upload-group label { display:block; font-size:13px; font-weight:600; color:#004358; margin-bottom:8px; }
+  .upload-hint { font-size:11.5px; color:#7A9DAA; margin-bottom:8px; }
+  .upload-box { border:1.5px dashed #AAC8D4; border-radius:12px; padding:16px; background:#F7FBFC; }
+  .upload-box input[type=file] { font-size:12.5px; width:100%; }
+  .upload-preview { margin-top:10px; text-align:center; display:none; }
+  .upload-preview img { max-width:100%; max-height:180px; border-radius:8px; border:1px solid #DCE9EE; object-fit:contain; }
+  .upload-preview.show { display:block; }
+  .upload-ok { display:none; align-items:center; gap:6px; font-size:12px; color:#1F8A70; font-weight:600; margin-top:8px; }
+  .upload-ok.show { display:flex; }
+
+  .btn-row { display:flex; justify-content:space-between; gap:10px; margin-top:22px; }
+  .btn-nav {
+    border:none; border-radius:12px; padding:13px 26px; font-size:14px; font-weight:600; cursor:pointer;
+    font-family:'Outfit',sans-serif; transition:all 0.15s;
+  }
+  .btn-back { background:#E4EEF2; color:#3D6472; }
+  .btn-back:hover { background:#D6E8EF; }
+  .btn-next { background:#FD7400; color:#fff; margin-left:auto; }
+  .btn-next:hover { background:#D96300; }
+  .btn-next:disabled, .btn-back:disabled { opacity:0.5; cursor:not-allowed; }
+
+  .center-msg { text-align:center; padding:30px 10px; }
+  .center-msg .emoji { font-size:42px; margin-bottom:14px; }
+  .center-msg h2 { font-size:19px; color:#004358; margin-bottom:10px; }
+  .center-msg p { font-size:14px; color:#3D6472; line-height:1.6; }
+
+  .err-msg { color:#B91C1C; font-size:12.5px; margin-top:6px; display:none; }
+  .err-msg.show { display:block; }
+  .spinner { width:16px; height:16px; border:2px solid #C8DDE5; border-top-color:#004358; border-radius:50%; animation:spin 0.7s linear infinite; display:inline-block; vertical-align:-3px; margin-right:6px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo-wrap">
+    <svg width="140" height="42" viewBox="0 0 160 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="9" fill="#FD7400"/>
+      <g stroke="#004358" stroke-width="2.5" stroke-linecap="round">
+        <line x1="24" y1="6"  x2="24" y2="2"/>
+        <line x1="24" y1="46" x2="24" y2="42"/>
+        <line x1="6"  y1="24" x2="2"  y2="24"/>
+        <line x1="46" y1="24" x2="42" y2="24"/>
+        <line x1="11.5" y1="11.5" x2="8.8" y2="8.8"/>
+        <line x1="39.2" y1="39.2" x2="36.5" y2="36.5"/>
+        <line x1="36.5" y1="11.5" x2="39.2" y2="8.8"/>
+        <line x1="8.8"  y1="39.2" x2="11.5" y2="36.5"/>
+      </g>
+      <text x="56" y="28" font-family="'Outfit', sans-serif" font-size="18" font-weight="700" fill="#004358" letter-spacing="-0.5">ELLO</text>
+      <text x="56" y="42" font-family="'Outfit', sans-serif" font-size="11" font-weight="500" fill="#FD7400" letter-spacing="2">SOLAR</text>
+    </svg>
+  </div>
+  <div class="divider"></div>
+
+  <div id="loading-state" class="center-msg">
+    <div class="spinner"></div> Carregando seus dados...
+  </div>
+
+  <div id="error-state" class="center-msg" style="display:none;">
+    <div class="emoji">⚠️</div>
+    <h2 id="error-title">Link inválido ou expirado</h2>
+    <p id="error-text">Verifique o link recebido ou entre em contato com nossa equipe.</p>
+  </div>
+
+  <div id="success-state" class="center-msg" style="display:none;">
+    <div class="emoji">🌟</div>
+    <h2>Dados confirmados com sucesso!</h2>
+    <p>Em breve nossa equipe entrará em contato. 🌟</p>
+  </div>
+
+  <div id="form-state" style="display:none;">
+    <h1>Confirme seus dados do projeto solar</h1>
+    <p class="subtitle">Verifique as informações abaixo e complete os dados necessários</p>
+
+    <div class="progress">
+      <div class="step-pill active" id="pill-1"><div class="step-num">1</div><span class="step-label">Dados pessoais</span></div>
+      <div class="step-line" id="line-1"></div>
+      <div class="step-pill" id="pill-2"><div class="step-num">2</div><span class="step-label">Dados do projeto</span></div>
+      <div class="step-line" id="line-2"></div>
+      <div class="step-pill" id="pill-3"><div class="step-num">3</div><span class="step-label">Documentos</span></div>
+    </div>
+
+    <!-- ETAPA 1 -->
+    <div class="step-section active" id="step-1">
+      <div class="form-grid">
+        <div class="form-group full"><label>Nome completo</label><input type="text" id="c-nome_cliente"></div>
+        <div class="form-group"><label>CPF</label><input type="text" id="c-cpf"></div>
+        <div class="form-group"><label>RG</label><input type="text" id="c-rg"></div>
+        <div class="form-group"><label>Profissão</label><input type="text" id="c-profissao"></div>
+        <div class="form-group"><label>Estado civil</label><input type="text" id="c-estado_civil"></div>
+        <div class="form-group"><label>Data de nascimento</label><input type="text" id="c-data_nascimento"></div>
+        <div class="form-group"><label>E-mail</label><input type="text" id="c-email"></div>
+        <div class="form-group"><label>Telefone</label><input type="text" id="c-telefone"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-nav btn-next" onclick="goToStep(2)">Continuar</button>
+      </div>
+    </div>
+
+    <!-- ETAPA 2 -->
+    <div class="step-section" id="step-2">
+      <div class="info-cards" id="project-cards"></div>
+      <div class="form-group full" style="margin-bottom:6px;">
+        <label>Alguma observação sobre o projeto?</label>
+        <textarea id="c-observacoes_cliente" placeholder="Escreva aqui caso queira informar algo..."></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn-nav btn-back" onclick="goToStep(1)">Voltar</button>
+        <button class="btn-nav btn-next" onclick="goToStep(3)">Continuar</button>
+      </div>
+    </div>
+
+    <!-- ETAPA 3 -->
+    <div class="step-section" id="step-3">
+      <div class="upload-group">
+        <label>Foto do RG (frente e verso)</label>
+        <p class="upload-hint">Envie uma foto legível do documento (ambos os lados, se possível em uma única imagem)</p>
+        <div class="upload-box">
+          <input type="file" accept="image/*" id="up-rg" onchange="handleUpload(this,'rg')">
+          <div class="upload-preview" id="prev-rg"><img id="img-rg"></div>
+          <div class="upload-ok" id="ok-rg">✓ Documento enviado</div>
+        </div>
+      </div>
+      <div class="upload-group">
+        <label>Foto do CPF</label>
+        <p class="upload-hint">Envie uma foto legível do documento</p>
+        <div class="upload-box">
+          <input type="file" accept="image/*" id="up-cpf" onchange="handleUpload(this,'cpf')">
+          <div class="upload-preview" id="prev-cpf"><img id="img-cpf"></div>
+          <div class="upload-ok" id="ok-cpf">✓ Documento enviado</div>
+        </div>
+      </div>
+      <div class="upload-group">
+        <label>Comprovante de residência</label>
+        <p class="upload-hint">Conta de luz, água, telefone ou similar, em seu nome ou de um familiar</p>
+        <div class="upload-box">
+          <input type="file" accept="image/*" id="up-comprovante" onchange="handleUpload(this,'comprovante')">
+          <div class="upload-preview" id="prev-comprovante"><img id="img-comprovante"></div>
+          <div class="upload-ok" id="ok-comprovante">✓ Documento enviado</div>
+        </div>
+      </div>
+      <p class="err-msg" id="docs-err">Envie os três documentos antes de confirmar.</p>
+      <div class="btn-row">
+        <button class="btn-nav btn-back" onclick="goToStep(2)">Voltar</button>
+        <button class="btn-nav btn-next" id="btn-confirmar" onclick="confirmarDados()">Confirmar dados</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="position:fixed;bottom:12px;right:16px;font-size:10px;color:rgba(0,67,88,0.28);text-align:right;line-height:1.6;pointer-events:none;">Desenvolvido por<br>Gustavo Grapp Furlanetto · © 2026</p>
+
+<script>
+const SURL='https://zsaomhnehwervejkldam.supabase.co';
+const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
+const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json'};
+
+const PROJECT_FIELDS=[
+  {key:'uc_geradora',label:'UC geradora'},
+  {key:'endereco',label:'Endereço',full:true},
+  {key:'sistema_kwp',label:'Sistema (kWp)'},
+  {key:'qtd_modulos',label:'Módulos'},
+  {key:'tipo_inversor',label:'Inversor'},
+  {key:'qtd_inversores',label:'Qtd. de inversores'},
+  {key:'valor_projeto',label:'Valor do projeto'},
+  {key:'forma_pagamento',label:'Forma de pagamento'},
+  {key:'prazo_entrega',label:'Prazo de entrega'}
+];
+
+let onboard=null;
+let uploadedUrls={};
+let currentStep=1;
+
+function showState(id){
+  ['loading-state','error-state','success-state','form-state'].forEach(s=>{
+    document.getElementById(s).style.display = s===id ? (id==='form-state'?'block':'flex') : 'none';
+    if(s===id && id!=='form-state') document.getElementById(s).style.display='block';
+  });
+}
+
+async function init(){
+  const params=new URLSearchParams(window.location.search);
+  const token=params.get('token');
+  if(!token){
+    showState('error-state');
+    return;
+  }
+  try{
+    const res=await fetch(`${SURL}/rest/v1/onboards?token=eq.${encodeURIComponent(token)}&select=*`,{headers:H});
+    if(!res.ok)throw new Error('Erro ao buscar dados');
+    const rows=await res.json();
+    if(!rows.length){
+      document.getElementById('error-title').textContent='Link inválido ou expirado';
+      document.getElementById('error-text').textContent='Não encontramos um onboard associado a este link. Verifique o link recebido ou entre em contato com nossa equipe.';
+      showState('error-state');
+      return;
+    }
+    onboard=rows[0];
+    if(onboard.status==='confirmado'){
+      showState('success-state');
+      document.getElementById('success-state').querySelector('h2').textContent='Você já confirmou seus dados.';
+      document.getElementById('success-state').querySelector('p').textContent='Obrigado! Em breve nossa equipe entrará em contato. 🌟';
+      return;
+    }
+    preencherFormulario();
+    showState('form-state');
+  }catch(e){
+    document.getElementById('error-title').textContent='Não foi possível carregar seus dados';
+    document.getElementById('error-text').textContent='Ocorreu um erro ao buscar suas informações. Tente novamente em instantes.';
+    showState('error-state');
+  }
+}
+
+function preencherFormulario(){
+  ['nome_cliente','cpf','rg','profissao','estado_civil','data_nascimento','email','telefone'].forEach(k=>{
+    const el=document.getElementById('c-'+k);
+    if(el)el.value=onboard[k]||'';
+  });
+  document.getElementById('c-observacoes_cliente').value=onboard.observacoes_cliente||'';
+
+  const cards=PROJECT_FIELDS.map(f=>{
+    const val=onboard[f.key];
+    if(!val)return '';
+    return `<div class="info-card${f.full?' full':''}"><div class="info-label">${f.label}</div><div class="info-value">${val}</div></div>`;
+  }).join('');
+  document.getElementById('project-cards').innerHTML=cards||'<div class="info-card full"><div class="info-value" style="color:#7A9DAA">Nenhum dado de projeto disponível.</div></div>';
+}
+
+function goToStep(step){
+  currentStep=step;
+  [1,2,3].forEach(i=>{
+    document.getElementById('step-'+i).classList.toggle('active',i===step);
+    const pill=document.getElementById('pill-'+i);
+    pill.classList.toggle('active',i===step);
+    pill.classList.toggle('done',i<step);
+    if(i<3){
+      document.getElementById('line-'+i).classList.toggle('done', i<step);
+    }
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function handleUpload(input,tipo){
+  const file=input.files[0];
+  if(!file||!onboard)return;
+  const token=onboard.token;
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+  const path=`onboards/${token}/${tipo}.${ext}`;
+
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=document.getElementById('img-'+tipo);
+    img.src=e.target.result;
+    document.getElementById('prev-'+tipo).classList.add('show');
+  };
+  reader.readAsDataURL(file);
+
+  document.getElementById('ok-'+tipo).classList.remove('show');
+  try{
+    const res=await fetch(`${SURL}/storage/v1/object/fotos-padrao/${path}`,{
+      method:'POST',
+      headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':file.type,'x-upsert':'true'},
+      body:file
+    });
+    if(!res.ok)throw new Error('Erro no upload');
+    uploadedUrls[tipo]=`${SURL}/storage/v1/object/public/fotos-padrao/${path}`;
+    document.getElementById('ok-'+tipo).classList.add('show');
+    document.getElementById('docs-err').classList.remove('show');
+  }catch(e){
+    alert('Erro ao enviar o documento. Tente novamente.');
+    input.value='';
+    document.getElementById('prev-'+tipo).classList.remove('show');
+  }
+}
+
+async function confirmarDados(){
+  if(!uploadedUrls.rg||!uploadedUrls.cpf||!uploadedUrls.comprovante){
+    document.getElementById('docs-err').classList.add('show');
+    return;
+  }
+  const btn=document.getElementById('btn-confirmar');
+  btn.disabled=true;
+  btn.textContent='Enviando...';
+
+  const body={
+    nome_cliente:document.getElementById('c-nome_cliente').value.trim()||null,
+    cpf:document.getElementById('c-cpf').value.trim()||null,
+    rg:document.getElementById('c-rg').value.trim()||null,
+    profissao:document.getElementById('c-profissao').value.trim()||null,
+    estado_civil:document.getElementById('c-estado_civil').value.trim()||null,
+    data_nascimento:document.getElementById('c-data_nascimento').value.trim()||null,
+    email:document.getElementById('c-email').value.trim()||null,
+    telefone:document.getElementById('c-telefone').value.trim()||null,
+    observacoes_cliente:document.getElementById('c-observacoes_cliente').value.trim()||null,
+    foto_rg_url:uploadedUrls.rg,
+    foto_cpf_url:uploadedUrls.cpf,
+    foto_comprovante_url:uploadedUrls.comprovante,
+    status:'confirmado',
+    dados_confirmados_em:new Date().toISOString(),
+    updated_at:new Date().toISOString()
+  };
+
+  try{
+    const res=await fetch(`${SURL}/rest/v1/onboards?token=eq.${encodeURIComponent(onboard.token)}`,{
+      method:'PATCH',
+      headers:H,
+      body:JSON.stringify(body)
+    });
+    if(!res.ok)throw new Error('Erro ao salvar');
+    showState('success-state');
+  }catch(e){
+    alert('Erro ao confirmar seus dados. Tente novamente.');
+    btn.disabled=false;
+    btn.textContent='Confirmar dados';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
