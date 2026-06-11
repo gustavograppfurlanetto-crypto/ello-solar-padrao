@@ -194,6 +194,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         Concluídos
       </button>
+      <button class="nav-item" onclick="showArquivados(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        Arquivados
+      </button>
       <div class="nav-label" style="margin-top:16px">Configurações</div>
       <button class="nav-item" id="nav-executores" onclick="showExecutoresView(this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
@@ -249,6 +253,10 @@
             <button class="btn" onclick="exportarExcel()" style="background:#1F8A70;color:white;border-color:#1F8A70;" title="Exportar pedidos filtrados para Excel">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="12" y1="13" x2="12" y2="17"/></svg>
               Exportar
+            </button>
+            <button class="btn" id="btn-arquivar-concluidos" onclick="arquivarConcluidos()" style="background:#004358;color:white;border-color:#004358;" title="Arquivar todos os pedidos concluídos">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+              Arquivar concluídos
             </button>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -541,7 +549,7 @@ const SURL='https://zsaomhnehwervejkldam.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
 const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
-let all=[],filtered=[],page=1,activeStatus='',filterExecMode='all',filterCadastroMode='all',filterDocsMode='all',sortNameOrder=null;
+let all=[],filtered=[],page=1,activeStatus='',viewArquivados=false,filterExecMode='all',filterCadastroMode='all',filterDocsMode='all',sortNameOrder=null;
 let editingId=null;
 let executores=[],editingExecutorId=null;
 const PER=10;
@@ -579,9 +587,10 @@ function populateCidadeFilter(){
 
 function updateStats(){
   const c={aberto:0,aguardando:0,em_andamento:0,concluido:0};
-  all.forEach(p=>c[p.status]++);
+  const ativos=all.filter(p=>!p.arquivado);
+  ativos.forEach(p=>c[p.status]++);
   Object.keys(c).forEach(k=>{const el=document.getElementById('stat-'+k);if(el)el.textContent=c[k];});
-  document.getElementById('sidebar-total').textContent=all.length;
+  document.getElementById('sidebar-total').textContent=ativos.length;
 }
 
 function setExecFilter(mode){
@@ -633,7 +642,8 @@ function applyFilters(){
   const ci=document.getElementById('filter-cidade').value;
   const base=all.filter(p=>{
     const ms=!s||(p.nome_titular||'').toLowerCase().includes(s)||(p.unidade_consumidora||'').toLowerCase().includes(s)||(p.cpf||'').includes(s)||(p.nome_contrato||'').toLowerCase().includes(s);
-    return ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st)&&(!ci||p.cidade===ci);
+    const ma=viewArquivados?p.arquivado===true:p.arquivado!==true;
+    return ma&&ms&&(!t||p.tipo_solicitacao===t)&&(!st||p.status===st)&&(!ci||p.cidade===ci);
   });
   updateExecClienteCounts(base);
   const afterExec=filterExecMode==='empresa'?base.filter(p=>p.feito_pelo_cliente!==true):filterExecMode==='cliente'?base.filter(p=>p.feito_pelo_cliente===true):base;
@@ -784,6 +794,10 @@ async function openDetail(id){
     ${desligHtml}
     ${p.foto_padrao?`<div class="detail-section"><div class="detail-section-title">Foto do padrão atual</div><div style="text-align:center"><img src="${p.foto_padrao}" style="max-width:100%;border-radius:6px;border:1px solid var(--border)"></div></div>`:''}
     <div style="margin-top:4px"><div class="detail-label" style="margin-bottom:8px">Mover status para:</div><div class="status-actions">${so}</div></div>
+    ${p.arquivado
+      ?`<div style="margin-top:12px"><button class="btn btn-ghost" onclick="toggleArquivado('${id}',false)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Desarquivar pedido</button></div>`
+      :p.status==='concluido'?`<div style="margin-top:12px"><button class="btn btn-ghost" onclick="toggleArquivado('${id}',true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Arquivar pedido</button></div>`
+      :''}
     <div class="detail-section" style="margin-top:16px">
       <div class="detail-section-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Documentos recebidos</div>
       <button id="btn-anexar-doc" onclick="anexarDocumento('${p.id}')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);border:1px dashed var(--border2);background:var(--surface2);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;margin-bottom:10px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Anexar documento</button>
@@ -1112,8 +1126,29 @@ function clearForm(){
   document.getElementById('f-foto-img').src='';
 }
 
-function filterByStatus(s){showPedidosView();activeStatus=s;document.getElementById('filter-status').value=s;document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));document.getElementById('topbar-title').textContent=SL[s]||'Todos os pedidos';applyFilters();}
-function showAll(){showPedidosView();activeStatus='';document.getElementById('filter-status').value='';document.getElementById('topbar-title').textContent='Todos os pedidos';document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('active',i===0));applyFilters();}
+function filterByStatus(s){showPedidosView();viewArquivados=false;activeStatus=s;document.getElementById('filter-status').value=s;document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));document.getElementById('topbar-title').textContent=SL[s]||'Todos os pedidos';applyFilters();}
+function showAll(){showPedidosView();viewArquivados=false;activeStatus='';document.getElementById('filter-status').value='';document.getElementById('topbar-title').textContent='Todos os pedidos';document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('active',i===0));applyFilters();}
+function showArquivados(btn){showPedidosView();viewArquivados=true;activeStatus='';document.getElementById('filter-status').value='';document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));if(btn)btn.classList.add('active');document.getElementById('topbar-title').textContent='Arquivados';applyFilters();}
+
+async function arquivarConcluidos(){
+  const pend=all.filter(p=>p.status==='concluido'&&!p.arquivado);
+  if(!pend.length){showToast('Nenhum pedido concluído para arquivar');return;}
+  if(!confirm(`Arquivar ${pend.length} pedido(s) concluído(s)? Eles deixarão de aparecer na lista principal.`))return;
+  try{
+    await api('PATCH','/rest/v1/pedidos?status=eq.concluido&arquivado=eq.false',{arquivado:true});
+    showToast('Pedidos arquivados!');
+    await load();
+  }catch(e){showToast('Erro ao arquivar pedidos',true);}
+}
+
+async function toggleArquivado(id,val){
+  try{
+    await api('PATCH','/rest/v1/pedidos?id=eq.'+id,{arquivado:val});
+    showToast(val?'Pedido arquivado!':'Pedido desarquivado!');
+    closeModal('modal-detail');
+    await load();
+  }catch(e){showToast('Erro ao arquivar pedido',true);}
+}
 function openNewModal(){document.getElementById('modal-new').classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function maskCPF(el){let v=el.value.replace(/\D/g,'').substring(0,11);v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
