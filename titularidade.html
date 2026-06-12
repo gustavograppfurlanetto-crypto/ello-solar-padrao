@@ -284,18 +284,10 @@
       <div class="form-section">
         <div class="form-section-title">Dados da UC</div>
         <div class="form-grid">
+          <div class="form-group full"><label>Nome do contrato</label><input type="text" id="f-nome-contrato" placeholder="Nome do contrato"></div>
           <div class="form-group"><label>Unidade consumidora</label><input type="text" id="f-uc" placeholder="Número da UC"></div>
           <div class="form-group"><label>Cidade</label><input type="text" id="f-cidade" placeholder="Ex: São Paulo"></div>
           <div class="form-group full"><label>Endereço</label><input type="text" id="f-endereco" placeholder="Rua, número, bairro, cidade"></div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="form-section-title">Titular atual</div>
-        <div class="form-grid">
-          <div class="form-group full"><label>Nome</label><input type="text" id="f-tit-nome" placeholder="Nome completo"></div>
-          <div class="form-group"><label>CPF</label><input type="text" id="f-tit-cpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)"></div>
-          <div class="form-group"><label>RG</label><input type="text" id="f-tit-rg" placeholder="00.000.000-0"></div>
         </div>
       </div>
 
@@ -506,11 +498,11 @@ function renderTable(){
     const docsBadge=`<span class="badge ${ds.complete?'badge-docs-ok':'badge-docs-pending'}" title="Clique para ver os documentos">${ds.done}/${ds.total} docs</span>`;
     const incompletoBadge=p.unidade_consumidora?'':' <span class="badge badge-incompleto">Incompleto</span>';
     return `<tr onclick="openDetail('${p.id}')">
+      <td style="color:var(--text2)">${p.nome_contrato||'—'}</td>
       <td class="td-name">${p.novo_titular_nome||'—'}${incompletoBadge}</td>
       <td class="td-mono">${p.novo_titular_cpf||'—'}</td>
       <td class="td-mono">${p.unidade_consumidora||'—'}</td>
       <td style="color:var(--text2)">${p.cidade||'—'}</td>
-      <td style="color:var(--text2)">${p.titular_atual_nome||'—'}</td>
       <td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td>
       <td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td>
       <td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td>
@@ -521,7 +513,7 @@ function renderTable(){
   }).join('');
   const _si=sortNameOrder==='asc'?'↑':sortNameOrder==='desc'?'↓':'↕';
   const _sc=sortNameOrder?'th-sort-active':'';
-  document.getElementById('table-container').innerHTML=`<table><thead><tr><th class="th-sortable ${_sc}" onclick="toggleSort()" title="Ordenar por nome">${_si} Nome do novo titular</th><th>CPF</th><th>Unidade consumidora</th><th>Cidade</th><th>Titular atual</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Docs</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do contrato</th><th class="th-sortable ${_sc}" onclick="toggleSort()" title="Ordenar por nome">${_si} Nome do novo titular</th><th>CPF</th><th>Unidade consumidora</th><th>Cidade</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Docs</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
   const pel=document.getElementById('pagination');
   pel.style.display='flex';
@@ -559,17 +551,10 @@ async function openDetail(id){
     <div class="detail-section">
       <div class="detail-section-title">Dados da UC</div>
       <div class="detail-grid">
+        <div class="detail-full"><div class="detail-label">Nome do contrato</div><div class="detail-value">${p.nome_contrato||'—'}</div></div>
         <div class="detail-item"><div class="detail-label">Unidade consumidora</div><div class="detail-value">${p.unidade_consumidora||'—'}</div></div>
         <div class="detail-item"><div class="detail-label">Cidade</div><div class="detail-value">${p.cidade||'—'}</div></div>
         <div class="detail-full"><div class="detail-label">Endereço</div><div class="detail-value">${p.endereco||'—'}</div></div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Titular atual</div>
-      <div class="detail-grid">
-        <div class="detail-full"><div class="detail-label">Nome</div><div class="detail-value">${p.titular_atual_nome||'—'}</div></div>
-        <div class="detail-item"><div class="detail-label">CPF</div><div class="detail-value">${p.titular_atual_cpf||'—'}</div></div>
-        <div class="detail-item"><div class="detail-label">RG</div><div class="detail-value">${p.titular_atual_rg||'—'}</div></div>
       </div>
     </div>
     <div class="detail-section">
@@ -730,12 +715,10 @@ function openEditModal(){
   clearForm();
   editingId=p.id;
   closeModal('modal-detail');
+  document.getElementById('f-nome-contrato').value=p.nome_contrato||'';
   document.getElementById('f-uc').value=p.unidade_consumidora||'';
   document.getElementById('f-endereco').value=p.endereco||'';
   document.getElementById('f-cidade').value=p.cidade||'';
-  document.getElementById('f-tit-nome').value=p.titular_atual_nome||'';
-  document.getElementById('f-tit-cpf').value=p.titular_atual_cpf||'';
-  document.getElementById('f-tit-rg').value=p.titular_atual_rg||'';
   document.getElementById('f-novo-nome').value=p.novo_titular_nome||'';
   document.getElementById('f-novo-cpf').value=p.novo_titular_cpf||'';
   document.getElementById('f-novo-rg').value=p.novo_titular_rg||'';
@@ -770,12 +753,10 @@ async function savePedido(){
   const nome=document.getElementById('f-novo-nome').value.trim();
   if(!nome){showToast('Informe o nome do novo titular',true);return;}
   const body={
+    nome_contrato:document.getElementById('f-nome-contrato').value.trim()||null,
     unidade_consumidora:document.getElementById('f-uc').value.trim()||null,
     endereco:document.getElementById('f-endereco').value.trim()||null,
     cidade:document.getElementById('f-cidade').value.trim()||null,
-    titular_atual_nome:document.getElementById('f-tit-nome').value.trim()||null,
-    titular_atual_cpf:document.getElementById('f-tit-cpf').value.trim()||null,
-    titular_atual_rg:document.getElementById('f-tit-rg').value.trim()||null,
     novo_titular_nome:nome,
     novo_titular_cpf:document.getElementById('f-novo-cpf').value.trim()||null,
     novo_titular_rg:document.getElementById('f-novo-rg').value.trim()||null,
@@ -806,7 +787,7 @@ function clearForm(){
   editingId=null;
   document.getElementById('modal-new-title').textContent='Novo pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar pedido';
-  ['f-uc','f-endereco','f-cidade','f-tit-nome','f-tit-cpf','f-tit-rg','f-novo-nome','f-novo-cpf','f-novo-rg','f-novo-nascimento','f-novo-telefone','f-novo-email','f-novo-mae','f-novo-pai','f-custo','f-negociado','f-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-nome-contrato','f-uc','f-endereco','f-cidade','f-novo-nome','f-novo-cpf','f-novo-rg','f-novo-nascimento','f-novo-telefone','f-novo-email','f-novo-mae','f-novo-pai','f-custo','f-negociado','f-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-executor').value='';
   document.getElementById('f-imovel-terceiro').checked=false;
   toggleImovelTerceiroWarn();
