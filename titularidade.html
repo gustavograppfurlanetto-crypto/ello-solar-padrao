@@ -50,6 +50,8 @@
   .btn-primary:hover { background:#D96300; }
   .btn-ghost { background:none; color:var(--text2); border-color:var(--border2); }
   .btn-ghost:hover { background:var(--surface2); color:var(--text); }
+  .btn-outline-accent { background:none; color:#004358; border-color:#004358; }
+  .btn-outline-accent:hover { background:#004358; color:#fff; }
   .btn svg { width:15px; height:15px; }
   .content { padding:28px; flex:1; }
   .stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:24px; }
@@ -86,6 +88,7 @@
   .badge-aprovado { background:var(--teal-bg); color:var(--teal-text); }
   .badge-docs-ok { background:var(--sky-bg); color:var(--sky-text); cursor:pointer; }
   .badge-docs-pending { background:var(--surface2); color:var(--text3); cursor:pointer; border:1px dashed var(--border2); }
+  .badge-incompleto { background:var(--accent2-bg); color:var(--accent2-text); }
   .empty-state { padding:60px 20px; text-align:center; color:var(--text3); }
   .empty-state svg { margin:0 auto 12px; display:block; color:var(--border2); }
   .empty-state p { font-size:13px; }
@@ -213,6 +216,10 @@
     <header class="topbar">
       <span class="topbar-title" id="topbar-title">Todos os pedidos</span>
       <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline-accent" onclick="openQuickModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          Cadastro rápido
+        </button>
         <button class="btn btn-primary" onclick="openNewModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo pedido
@@ -374,6 +381,26 @@
   </div>
 </div>
 
+<!-- MODAL CADASTRO RÁPIDO -->
+<div class="modal-overlay" id="modal-quick">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title">Cadastro rápido</span>
+      <button class="modal-close" onclick="closeModal('modal-quick')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="required">Nome do novo titular</label>
+        <input type="text" id="f-quick-nome" placeholder="Nome completo" onkeydown="if(event.key==='Enter')saveQuickPedido()">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-quick')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveQuickPedido()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -477,8 +504,9 @@ function renderTable(){
     const negocFmt=p.negociado!=null?Number(p.negociado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
     const ds=docsStatus(p);
     const docsBadge=`<span class="badge ${ds.complete?'badge-docs-ok':'badge-docs-pending'}" title="Clique para ver os documentos">${ds.done}/${ds.total} docs</span>`;
+    const incompletoBadge=p.unidade_consumidora?'':' <span class="badge badge-incompleto">Incompleto</span>';
     return `<tr onclick="openDetail('${p.id}')">
-      <td class="td-name">${p.novo_titular_nome||'—'}</td>
+      <td class="td-name">${p.novo_titular_nome||'—'}${incompletoBadge}</td>
       <td class="td-mono">${p.novo_titular_cpf||'—'}</td>
       <td class="td-mono">${p.unidade_consumidora||'—'}</td>
       <td style="color:var(--text2)">${p.cidade||'—'}</td>
@@ -679,6 +707,23 @@ async function toggleArquivado(){
 
 function openNewModal(){clearForm();document.getElementById('modal-new').classList.add('open');}
 
+function openQuickModal(){
+  document.getElementById('f-quick-nome').value='';
+  document.getElementById('modal-quick').classList.add('open');
+  document.getElementById('f-quick-nome').focus();
+}
+
+async function saveQuickPedido(){
+  const nome=document.getElementById('f-quick-nome').value.trim();
+  if(!nome){showToast('Informe o nome do novo titular',true);return;}
+  try{
+    await api('POST','/rest/v1/titularidade',{novo_titular_nome:nome,status:'novo_pedido'});
+    showToast('Pedido cadastrado!');
+    closeModal('modal-quick');
+    await load();
+  }catch(e){showToast('Erro ao salvar',true);}
+}
+
 function openEditModal(){
   const p=currentPedido;
   if(!p)return;
@@ -798,6 +843,7 @@ function formatMoeda(v){
 
 document.getElementById('modal-new').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-new');});
 document.getElementById('modal-detail').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-detail');});
+document.getElementById('modal-quick').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-quick');});
 
 function startInlineEdit(event, pedidoId, field, td) {
   event.stopPropagation();
