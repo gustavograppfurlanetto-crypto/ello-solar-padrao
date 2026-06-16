@@ -89,6 +89,13 @@
   .badge-docs-ok { background:var(--sky-bg); color:var(--sky-text); cursor:pointer; }
   .badge-docs-pending { background:var(--surface2); color:var(--text3); cursor:pointer; border:1px dashed var(--border2); }
   .badge-incompleto { background:var(--accent2-bg); color:var(--accent2-text); }
+  .badge-geradora { background:var(--accent-bg); color:var(--accent-text); }
+  .badge-remota { background:var(--sky-bg); color:var(--sky-text); }
+  .exec-filter-group { display:inline-flex; border:1px solid var(--border2); border-radius:var(--radius-sm); overflow:hidden; }
+  .exec-filter-btn { border:none; background:var(--surface2); padding:6px 11px; font-family:'Outfit',sans-serif; font-size:13px; color:var(--text2); cursor:pointer; transition:all 0.15s; white-space:nowrap; border-right:1px solid var(--border2); }
+  .exec-filter-btn:last-child { border-right:none; }
+  .exec-filter-btn.active-dark { background:#004358; color:#fff; font-weight:600; }
+  .exec-filter-btn.active-sky { background:#58AFDA; color:#fff; font-weight:600; }
   .empty-state { padding:60px 20px; text-align:center; color:var(--text3); }
   .empty-state svg { margin:0 auto 12px; display:block; color:var(--border2); }
   .empty-state p { font-size:13px; }
@@ -261,6 +268,11 @@
             <select class="filter-select" id="filter-executor" onchange="applyFilters()">
               <option value="">Todos os executores</option>
             </select>
+            <div class="exec-filter-group">
+              <button class="exec-filter-btn active-dark" id="btn-fatura-todos" onclick="setTipoFaturaFilter('all')">Todos</button>
+              <button class="exec-filter-btn" id="btn-fatura-geradora" onclick="setTipoFaturaFilter('geradora')">Geradora</button>
+              <button class="exec-filter-btn" id="btn-fatura-remota" onclick="setTipoFaturaFilter('remota')">Remota</button>
+            </div>
           </div>
         </div>
         <div id="table-container"><div class="loading"><div class="spinner"></div> Carregando pedidos...</div></div>
@@ -288,6 +300,13 @@
           <div class="form-group"><label>Unidade consumidora</label><input type="text" id="f-uc" placeholder="Número da UC"></div>
           <div class="form-group"><label>Cidade</label><input type="text" id="f-cidade" placeholder="Ex: São Paulo"></div>
           <div class="form-group full"><label>Endereço</label><input type="text" id="f-endereco" placeholder="Rua, número, bairro, cidade"></div>
+          <div class="form-group full">
+            <label>Tipo de fatura</label>
+            <div style="display:flex;gap:6px;margin-top:2px;">
+              <button type="button" id="f-tipo-fatura-geradora" onclick="setTipoFatura('geradora')" style="flex:1;padding:8px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:'Outfit',sans-serif;cursor:pointer;transition:all 0.15s;border:1px solid var(--accent);background:var(--accent-bg);color:var(--accent-text);">Geradora</button>
+              <button type="button" id="f-tipo-fatura-remota" onclick="setTipoFatura('remota')" style="flex:1;padding:8px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;font-family:'Outfit',sans-serif;cursor:pointer;transition:all 0.15s;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);">Remota</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -400,7 +419,8 @@ const SURL='https://zsaomhnehwervejkldam.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzYW9taG5laHdlcnZlamtsZGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzI5MzcsImV4cCI6MjA5MjU0ODkzN30._QYsLEIHxQV6UV90SPMWxds9BaGVvWuDy_6URN7Pavg';
 const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation'};
 
-let all=[],filtered=[],page=1,activeStatus='',viewArquivados=false,filterExecutorId='',sortNameOrder=null;
+let all=[],filtered=[],page=1,activeStatus='',viewArquivados=false,filterExecutorId='',sortNameOrder=null,filterTipoFatura='all';
+let formTipoFatura='geradora';
 let editingId=null;
 let executores=[];
 let currentPedido=null;
@@ -463,7 +483,7 @@ function applyFilters(){
   filtered=all.filter(p=>{
     const ms=!s||(p.novo_titular_nome||'').toLowerCase().includes(s)||(p.unidade_consumidora||'').toLowerCase().includes(s)||(p.novo_titular_cpf||'').includes(s);
     const ma=viewArquivados?p.arquivado===true:p.arquivado!==true;
-    return ma&&ms&&(!st||p.status===st)&&(!ci||p.cidade===ci)&&(!ex||p.executor_id===ex);
+    return ma&&ms&&(!st||p.status===st)&&(!ci||p.cidade===ci)&&(!ex||p.executor_id===ex)&&(filterTipoFatura==='all'||(p.tipo_fatura||'geradora')===filterTipoFatura);
   });
   if(sortNameOrder){
     filtered=[...filtered].sort((a,b)=>{
@@ -501,7 +521,7 @@ function renderTable(){
       <td style="color:var(--text2)">${p.nome_contrato||'—'}</td>
       <td class="td-name">${p.novo_titular_nome||'—'}${incompletoBadge}</td>
       <td class="td-mono">${p.novo_titular_cpf||'—'}</td>
-      <td class="td-mono">${p.unidade_consumidora||'—'}</td>
+      <td class="td-mono">${p.unidade_consumidora||'—'} <span class="badge ${(p.tipo_fatura||'geradora')==='remota'?'badge-remota':'badge-geradora'}" style="font-size:10px;padding:2px 7px;">${(p.tipo_fatura||'geradora')==='remota'?'Remota':'Geradora'}</span></td>
       <td style="color:var(--text2)">${p.cidade||'—'}</td>
       <td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td>
       <td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td>
@@ -553,6 +573,7 @@ async function openDetail(id){
       <div class="detail-grid">
         <div class="detail-full"><div class="detail-label">Nome do contrato</div><div class="detail-value">${p.nome_contrato||'—'}</div></div>
         <div class="detail-item"><div class="detail-label">Unidade consumidora</div><div class="detail-value">${p.unidade_consumidora||'—'}</div></div>
+        <div class="detail-item"><div class="detail-label">Tipo de fatura</div><div class="detail-value"><span class="badge ${(p.tipo_fatura||'geradora')==='remota'?'badge-remota':'badge-geradora'}">${(p.tipo_fatura||'geradora')==='remota'?'Remota':'Geradora'}</span></div></div>
         <div class="detail-item"><div class="detail-label">Cidade</div><div class="detail-value">${p.cidade||'—'}</div></div>
         <div class="detail-full"><div class="detail-label">Endereço</div><div class="detail-value">${p.endereco||'—'}</div></div>
       </div>
@@ -729,6 +750,7 @@ function openEditModal(){
   document.getElementById('f-novo-pai').value=p.novo_titular_pai||'';
   document.getElementById('f-imovel-terceiro').checked=!!p.imovel_terceiro;
   toggleImovelTerceiroWarn();
+  setTipoFatura(p.tipo_fatura||'geradora');
   document.getElementById('f-executor').value=p.executor_id||'';
   document.getElementById('f-custo').value=p.custo!=null?formatMoeda(p.custo):'';
   document.getElementById('f-negociado').value=p.negociado!=null?formatMoeda(p.negociado):'';
@@ -757,6 +779,7 @@ async function savePedido(){
     unidade_consumidora:document.getElementById('f-uc').value.trim()||null,
     endereco:document.getElementById('f-endereco').value.trim()||null,
     cidade:document.getElementById('f-cidade').value.trim()||null,
+    tipo_fatura:formTipoFatura,
     novo_titular_nome:nome,
     novo_titular_cpf:document.getElementById('f-novo-cpf').value.trim()||null,
     novo_titular_rg:document.getElementById('f-novo-rg').value.trim()||null,
@@ -791,6 +814,7 @@ function clearForm(){
   document.getElementById('f-executor').value='';
   document.getElementById('f-imovel-terceiro').checked=false;
   toggleImovelTerceiroWarn();
+  setTipoFatura('geradora');
 }
 
 function toggleImovelTerceiroWarn(){
@@ -948,6 +972,32 @@ function populateExecutorFilter(){
     opt.value=e.id;opt.textContent=e.nome;sel.appendChild(opt);
   });
   if(cur)sel.value=cur;
+}
+
+function setTipoFatura(val){
+  formTipoFatura=val;
+  const gBtn=document.getElementById('f-tipo-fatura-geradora');
+  const rBtn=document.getElementById('f-tipo-fatura-remota');
+  if(gBtn&&rBtn){
+    gBtn.style.background=val==='geradora'?'var(--accent-bg)':'var(--surface2)';
+    gBtn.style.color=val==='geradora'?'var(--accent-text)':'var(--text2)';
+    gBtn.style.borderColor=val==='geradora'?'var(--accent)':'var(--border2)';
+    gBtn.style.fontWeight=val==='geradora'?'600':'500';
+    rBtn.style.background=val==='remota'?'var(--sky-bg)':'var(--surface2)';
+    rBtn.style.color=val==='remota'?'var(--sky-text)':'var(--text2)';
+    rBtn.style.borderColor=val==='remota'?'var(--sky)':'var(--border2)';
+    rBtn.style.fontWeight=val==='remota'?'600':'500';
+  }
+}
+
+function setTipoFaturaFilter(val){
+  filterTipoFatura=val;
+  ['todos','geradora','remota'].forEach(v=>{
+    const btn=document.getElementById('btn-fatura-'+v);
+    if(!btn)return;
+    btn.className='exec-filter-btn'+(val===v?(v==='remota'?' active-sky':' active-dark'):'');
+  });
+  applyFilters();
 }
 
 loadExecutores();load();
