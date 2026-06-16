@@ -353,9 +353,13 @@
     <div class="modal-body" id="detail-body"></div>
     <div class="modal-footer" style="justify-content:space-between;">
       <div style="display:flex;gap:6px;">
-        <button class="btn" style="gap:5px;font-size:12px;padding:5px 10px;" onclick="openEditModal()">
+        <button class="btn btn-ghost" style="gap:5px;font-size:12px;padding:5px 10px;" onclick="openEditModal()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Editar
+        </button>
+        <button class="btn btn-ghost" style="gap:5px;font-size:12px;padding:5px 10px;" onclick="duplicatePedido()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Duplicar
         </button>
         <button class="btn" id="btn-arquivar-detail" style="background:#004358;color:white;border-color:#004358;gap:5px;font-size:12px;padding:5px 10px;display:none;" onclick="toggleArquivado()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
@@ -711,6 +715,27 @@ function openEditModal(){
   document.getElementById('modal-new-title').textContent='Editar pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar alterações';
   document.getElementById('modal-new').classList.add('open');
+}
+
+async function duplicatePedido(){
+  if(!currentPedido)return;
+  const p=currentPedido;
+  const body={
+    nome_contrato:p.nome_contrato||null,
+    novo_titular_nome:p.novo_titular_nome||null,
+    novo_titular_cpf:p.novo_titular_cpf||null,
+    novo_titular_rg:p.novo_titular_rg||null,
+    novo_titular_nascimento:p.novo_titular_nascimento||null,
+    novo_titular_telefone:p.novo_titular_telefone||null,
+    novo_titular_email:p.novo_titular_email||null,
+    status:'novo_pedido'
+  };
+  try{
+    await api('POST','/rest/v1/titularidade',body);
+    showToast('Pedido duplicado com sucesso!');
+    closeModal('modal-detail');
+    await load();
+  }catch(e){showToast('Erro ao duplicar pedido',true);}
 }
 
 async function deletePedido(){
