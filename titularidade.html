@@ -265,9 +265,6 @@
             <select class="filter-select" id="filter-cidade" onchange="applyFilters()">
               <option value="">Todas as cidades</option>
             </select>
-            <select class="filter-select" id="filter-executor" onchange="applyFilters()">
-              <option value="">Todos os executores</option>
-            </select>
             <div class="exec-filter-group">
               <button class="exec-filter-btn active-dark" id="btn-fatura-todos" onclick="setTipoFaturaFilter('all')">Todos</button>
               <button class="exec-filter-btn" id="btn-fatura-geradora" onclick="setTipoFaturaFilter('geradora')">Geradora</button>
@@ -319,8 +316,6 @@
           <div class="form-group"><label>Data de nascimento</label><input type="date" id="f-novo-nascimento"></div>
           <div class="form-group"><label>Telefone</label><input type="text" id="f-novo-telefone" placeholder="(00) 00000-0000" maxlength="15" oninput="maskPhone(this)"></div>
           <div class="form-group"><label>E-mail</label><input type="email" id="f-novo-email" placeholder="email@exemplo.com"></div>
-          <div class="form-group"><label>Nome da mãe</label><input type="text" id="f-novo-mae" placeholder="Nome da mãe"></div>
-          <div class="form-group"><label>Nome do pai</label><input type="text" id="f-novo-pai" placeholder="Nome do pai"></div>
           <div class="form-group full">
             <div class="checkbox-row">
               <input type="checkbox" id="f-imovel-terceiro" onchange="toggleImovelTerceiroWarn()">
@@ -331,21 +326,6 @@
               <span>Será necessário anexar a declaração de autorização do proprietário do imóvel.</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="form-section-title">Atribuição</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Executor</label>
-            <select id="f-executor">
-              <option value="">— Selecione um executor —</option>
-            </select>
-          </div>
-          <div class="form-group"></div>
-          <div class="form-group"><label>Custo</label><input type="text" id="f-custo" placeholder="R$ 0,00" oninput="maskMoeda(this)"></div>
-          <div class="form-group"><label>Negociado</label><input type="text" id="f-negociado" placeholder="R$ 0,00" oninput="maskMoeda(this)"></div>
         </div>
       </div>
 
@@ -422,7 +402,6 @@ const H={'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'applicatio
 let all=[],filtered=[],page=1,activeStatus='',viewArquivados=false,filterExecutorId='',sortNameOrder=null,filterTipoFatura='all';
 let formTipoFatura='geradora';
 let editingId=null;
-let executores=[];
 let currentPedido=null;
 const PER=10;
 const SL={novo_pedido:'Novo pedido',documentacao:'Documentação',solicitacao:'Solicitação',aguardando_aprovacao:'Aguardando aprovação',aprovado:'Aprovado'};
@@ -479,11 +458,10 @@ function applyFilters(){
   const s=document.getElementById('search-input').value.toLowerCase();
   const st=document.getElementById('filter-status').value||activeStatus;
   const ci=document.getElementById('filter-cidade').value;
-  const ex=document.getElementById('filter-executor').value;
   filtered=all.filter(p=>{
     const ms=!s||(p.novo_titular_nome||'').toLowerCase().includes(s)||(p.unidade_consumidora||'').toLowerCase().includes(s)||(p.novo_titular_cpf||'').includes(s);
     const ma=viewArquivados?p.arquivado===true:p.arquivado!==true;
-    return ma&&ms&&(!st||p.status===st)&&(!ci||p.cidade===ci)&&(!ex||p.executor_id===ex)&&(filterTipoFatura==='all'||(p.tipo_fatura||'geradora')===filterTipoFatura);
+    return ma&&ms&&(!st||p.status===st)&&(!ci||p.cidade===ci)&&(filterTipoFatura==='all'||(p.tipo_fatura||'geradora')===filterTipoFatura);
   });
   if(sortNameOrder){
     filtered=[...filtered].sort((a,b)=>{
@@ -511,9 +489,6 @@ function renderTable(){
   const rows=pg.map(p=>{
     const sb=`<span class="badge badge-${p.status}"><span class="badge-dot" style="background:${SC[p.status]}"></span>${SL[p.status]}</span>`;
     const d=new Date(p.created_at).toLocaleDateString('pt-BR');
-    const execNome=executores.find(e=>e.id===p.executor_id)?.nome||'—';
-    const custoFmt=p.custo!=null?Number(p.custo).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
-    const negocFmt=p.negociado!=null?Number(p.negociado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
     const ds=docsStatus(p);
     const docsBadge=`<span class="badge ${ds.complete?'badge-docs-ok':'badge-docs-pending'}" title="Clique para ver os documentos">${ds.done}/${ds.total} docs</span>`;
     const incompletoBadge=p.unidade_consumidora?'':' <span class="badge badge-incompleto">Incompleto</span>';
@@ -524,16 +499,13 @@ function renderTable(){
       <td class="td-mono">${p.unidade_consumidora||'—'} <span class="badge ${(p.tipo_fatura||'geradora')==='remota'?'badge-remota':'badge-geradora'}" style="font-size:10px;padding:2px 7px;">${(p.tipo_fatura||'geradora')==='remota'?'Remota':'Geradora'}</span></td>
       <td style="color:var(--text2)">${p.cidade||'—'}</td>
       <td class="td-editable" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','status',this)">${sb}</td>
-      <td class="td-editable" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','executor_id',this)">${execNome}</td>
-      <td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','custo',this)">${custoFmt}</td>
-      <td class="td-editable td-mono" style="font-size:12px;color:var(--text2)" title="Clique para editar" onclick="startInlineEdit(event,'${p.id}','negociado',this)">${negocFmt}</td>
       <td>${docsBadge}</td>
       <td class="td-mono" style="color:var(--text3)">${d}</td>
     </tr>`;
   }).join('');
   const _si=sortNameOrder==='asc'?'↑':sortNameOrder==='desc'?'↓':'↕';
   const _sc=sortNameOrder?'th-sort-active':'';
-  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do contrato</th><th class="th-sortable ${_sc}" onclick="toggleSort()" title="Ordenar por nome">${_si} Nome do novo titular</th><th>CPF</th><th>Unidade consumidora</th><th>Cidade</th><th>Status</th><th>Executor</th><th>Custo</th><th>Negociado</th><th>Docs</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.getElementById('table-container').innerHTML=`<table><thead><tr><th>Nome do contrato</th><th class="th-sortable ${_sc}" onclick="toggleSort()" title="Ordenar por nome">${_si} Nome do novo titular</th><th>CPF</th><th>Unidade consumidora</th><th>Cidade</th><th>Status</th><th>Docs</th><th>Data</th></tr></thead><tbody>${rows}</tbody></table>`;
   const tp=Math.ceil(total/PER);
   const pel=document.getElementById('pagination');
   pel.style.display='flex';
@@ -556,9 +528,6 @@ async function openDetail(id){
   document.getElementById('detail-title').textContent=p.novo_titular_nome||'Pedido sem nome';
   const d=new Date(p.created_at).toLocaleDateString('pt-BR');
   const dn=p.novo_titular_nascimento?new Date(p.novo_titular_nascimento+'T00:00:00').toLocaleDateString('pt-BR'):'—';
-  const execNome=executores.find(e=>e.id===p.executor_id)?.nome||'—';
-  const custoFmt=p.custo!=null?Number(p.custo).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
-  const negocFmt=p.negociado!=null?Number(p.negociado).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—';
   const so=Object.entries(SL).filter(([k])=>k!==p.status)
     .map(([k,v])=>`<button class="btn-status btn-status-${k}" onclick="updateStatus('${id}','${k}')">${v}</button>`).join('');
 
@@ -587,17 +556,6 @@ async function openDetail(id){
         <div class="detail-item"><div class="detail-label">Data de nascimento</div><div class="detail-value">${dn}</div></div>
         <div class="detail-item"><div class="detail-label">Telefone</div><div class="detail-value">${p.novo_titular_telefone||'—'}</div></div>
         <div class="detail-item"><div class="detail-label">E-mail</div><div class="detail-value">${p.novo_titular_email||'—'}</div></div>
-        <div class="detail-item"><div class="detail-label">Nome da mãe</div><div class="detail-value">${p.novo_titular_mae||'—'}</div></div>
-        <div class="detail-item"><div class="detail-label">Nome do pai</div><div class="detail-value">${p.novo_titular_pai||'—'}</div></div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Atribuição</div>
-      <div class="detail-grid">
-        <div class="detail-item"><div class="detail-label">Executor</div><div class="detail-value">${execNome}</div></div>
-        <div class="detail-item"></div>
-        <div class="detail-item"><div class="detail-label">Custo</div><div class="detail-value">${custoFmt}</div></div>
-        <div class="detail-item"><div class="detail-label">Negociado</div><div class="detail-value">${negocFmt}</div></div>
       </div>
     </div>
     ${p.observacoes?`<div class="detail-section"><div class="detail-section-title">Observações</div><div class="detail-value" style="padding:9px 0">${p.observacoes}</div></div>`:''}
@@ -746,14 +704,9 @@ function openEditModal(){
   document.getElementById('f-novo-nascimento').value=p.novo_titular_nascimento||'';
   document.getElementById('f-novo-telefone').value=p.novo_titular_telefone||'';
   document.getElementById('f-novo-email').value=p.novo_titular_email||'';
-  document.getElementById('f-novo-mae').value=p.novo_titular_mae||'';
-  document.getElementById('f-novo-pai').value=p.novo_titular_pai||'';
   document.getElementById('f-imovel-terceiro').checked=!!p.imovel_terceiro;
   toggleImovelTerceiroWarn();
   setTipoFatura(p.tipo_fatura||'geradora');
-  document.getElementById('f-executor').value=p.executor_id||'';
-  document.getElementById('f-custo').value=p.custo!=null?formatMoeda(p.custo):'';
-  document.getElementById('f-negociado').value=p.negociado!=null?formatMoeda(p.negociado):'';
   document.getElementById('f-obs').value=p.observacoes||'';
   document.getElementById('modal-new-title').textContent='Editar pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar alterações';
@@ -786,12 +739,7 @@ async function savePedido(){
     novo_titular_nascimento:document.getElementById('f-novo-nascimento').value||null,
     novo_titular_telefone:document.getElementById('f-novo-telefone').value.trim()||null,
     novo_titular_email:document.getElementById('f-novo-email').value.trim()||null,
-    novo_titular_mae:document.getElementById('f-novo-mae').value.trim()||null,
-    novo_titular_pai:document.getElementById('f-novo-pai').value.trim()||null,
     imovel_terceiro:document.getElementById('f-imovel-terceiro').checked,
-    executor_id:document.getElementById('f-executor').value||null,
-    custo:parseMoeda(document.getElementById('f-custo').value),
-    negociado:parseMoeda(document.getElementById('f-negociado').value),
     observacoes:document.getElementById('f-obs').value.trim()||null
   };
   try{
@@ -810,8 +758,7 @@ function clearForm(){
   editingId=null;
   document.getElementById('modal-new-title').textContent='Novo pedido';
   document.getElementById('btn-save-pedido').textContent='Salvar pedido';
-  ['f-nome-contrato','f-uc','f-endereco','f-cidade','f-novo-nome','f-novo-cpf','f-novo-rg','f-novo-nascimento','f-novo-telefone','f-novo-email','f-novo-mae','f-novo-pai','f-custo','f-negociado','f-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('f-executor').value='';
+  ['f-nome-contrato','f-uc','f-endereco','f-cidade','f-novo-nome','f-novo-cpf','f-novo-rg','f-novo-nascimento','f-novo-telefone','f-novo-email','f-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-imovel-terceiro').checked=false;
   toggleImovelTerceiroWarn();
   setTipoFatura('geradora');
@@ -830,22 +777,6 @@ function maskCPF(el){let v=el.value.replace(/\D/g,'').substring(0,11);v=v.replac
 function maskPhone(el){let v=el.value.replace(/\D/g,'').substring(0,11);v=v.replace(/^(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d)/,'$1-$2');el.value=v;}
 function showToast(msg,err=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(err?' error':'')+' show';setTimeout(()=>t.classList.remove('show'),2800);}
 
-function maskMoeda(el){
-  let v=el.value.replace(/\D/g,'');
-  if(!v){el.value='';return;}
-  v=(parseInt(v,10)/100).toFixed(2);
-  el.value='R$ '+v.replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-}
-function parseMoeda(str){
-  if(!str||!str.trim())return null;
-  const n=parseFloat(str.replace(/[R$\s.]/g,'').replace(',','.'));
-  return isNaN(n)?null:n;
-}
-function formatMoeda(v){
-  if(v==null)return'';
-  return Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-}
-
 document.getElementById('modal-new').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-new');});
 document.getElementById('modal-detail').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-detail');});
 document.getElementById('modal-quick').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modal-quick');});
@@ -859,35 +790,14 @@ function startInlineEdit(event, pedidoId, field, td) {
   const originalHTML = td.innerHTML;
   let input;
   const baseStyle = 'border:1px solid var(--accent);border-radius:4px;padding:3px 6px;outline:none;width:100%;font-family:Outfit,sans-serif;font-size:12px;background:#fff;';
-  if (field === 'status') {
-    input = document.createElement('select');
-    input.style.cssText = baseStyle + 'cursor:pointer;';
-    Object.entries(SL).forEach(([k,v]) => {
-      const o = document.createElement('option');
-      o.value = k; o.textContent = v;
-      if (k === p.status) o.selected = true;
-      input.appendChild(o);
-    });
-  } else if (field === 'executor_id') {
-    input = document.createElement('select');
-    input.style.cssText = baseStyle + 'cursor:pointer;';
-    const none = document.createElement('option');
-    none.value = ''; none.textContent = '— Nenhum —';
-    if (!p.executor_id) none.selected = true;
-    input.appendChild(none);
-    executores.filter(e => e.ativo).forEach(e => {
-      const o = document.createElement('option');
-      o.value = e.id; o.textContent = e.nome;
-      if (e.id === p.executor_id) o.selected = true;
-      input.appendChild(o);
-    });
-  } else {
-    input = document.createElement('input');
-    input.type = 'number'; input.step = '0.01'; input.min = '0';
-    const cv = p[field];
-    if (cv != null) input.value = Number(cv).toFixed(2);
-    input.style.cssText = baseStyle + 'font-family:"DM Mono",monospace;text-align:right;cursor:text;';
-  }
+  input = document.createElement('select');
+  input.style.cssText = baseStyle + 'cursor:pointer;';
+  Object.entries(SL).forEach(([k,v]) => {
+    const o = document.createElement('option');
+    o.value = k; o.textContent = v;
+    if (k === p.status) o.selected = true;
+    input.appendChild(o);
+  });
   td.innerHTML = '';
   td.appendChild(input);
   input.focus();
@@ -935,43 +845,7 @@ function rebuildCell(td, field, p) {
   if (!p) return;
   if (field === 'status') {
     td.innerHTML = `<span class="badge badge-${p.status}"><span class="badge-dot" style="background:${SC[p.status]}"></span>${SL[p.status]}</span>`;
-  } else if (field === 'executor_id') {
-    td.textContent = executores.find(e => e.id === p.executor_id)?.nome || '—';
-  } else {
-    td.textContent = p[field] != null ? Number(p[field]).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}) : '—';
   }
-}
-
-async function loadExecutores(){
-  try{
-    executores=await api('GET','/rest/v1/executores?select=*&order=nome.asc');
-    populateExecutorSelect();
-    populateExecutorFilter();
-  }catch(e){executores=[];}
-}
-
-function populateExecutorSelect(){
-  const sel=document.getElementById('f-executor');
-  if(!sel)return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="">— Selecione um executor —</option>';
-  executores.filter(e=>e.ativo).forEach(e=>{
-    const opt=document.createElement('option');
-    opt.value=e.id;opt.textContent=e.nome;sel.appendChild(opt);
-  });
-  if(cur)sel.value=cur;
-}
-
-function populateExecutorFilter(){
-  const sel=document.getElementById('filter-executor');
-  if(!sel)return;
-  const cur=sel.value;
-  sel.innerHTML='<option value="">Todos os executores</option>';
-  executores.forEach(e=>{
-    const opt=document.createElement('option');
-    opt.value=e.id;opt.textContent=e.nome;sel.appendChild(opt);
-  });
-  if(cur)sel.value=cur;
 }
 
 function setTipoFatura(val){
@@ -1000,7 +874,7 @@ function setTipoFaturaFilter(val){
   applyFilters();
 }
 
-loadExecutores();load();
+load();
 </script>
 </body>
 </html>
